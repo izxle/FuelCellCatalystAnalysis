@@ -18,14 +18,18 @@ class Folder(object):
         self.verb = verb
         self.ext = ext
         self.fpath = fpath
+        if self.verb>2: print self.fpath
         self.files = {nam.lstrip(self.fpath): {'cycles': None} for nam in (
                             self._getFiles() if not files else files)}
+        if self.verb>1: print self.files
         self._getData()
         self._getCycles()
     
     def _getFiles(self):
         #TODO: exclude folders
-        return glob.glob(self.fpath + '/*' + self.ext)
+        files = glob.glob(self.fpath + '/*' + self.ext)
+        if self.verb>2: print files
+        return files
     
     def getFiles(self):
         return [self.fpath + nam for nam in self.files]
