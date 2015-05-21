@@ -72,12 +72,19 @@ def run(cycle, sr=20., rCl=0.4, rCu=0.6, rCOl=0.6, rCOu=.9, graph=True, addH=Tru
     #copy to excel
     if copy:
         toClipboardForExcel(np.column_stack((x, y)))
-        raw_input("copy CO...")
+        raw_input("copy CO profile...")
         print '... done'        
     #plot difference
     #TODO: add grey area
     if graph>1:
         plt.figure()
+        if copy:
+            toClipboardForExcel(cycle[1])
+            raw_input("copy CO 1...")
+            print '... done'
+            toClipboardForExcel(cycle[2])
+            raw_input("copy CO 2...")
+            print '... done'
         plt.plot(*zip(*cycle[1]), color='b', linestyle=':')
         plt.plot(*zip(*cycle[2]), color='g', linestyle=':')
         plt.plot(x, y)

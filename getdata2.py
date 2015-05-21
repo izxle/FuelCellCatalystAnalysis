@@ -70,8 +70,12 @@ class Folder(object):
             #TODO: mejorar
             cycles = {}            
             if '.xls' in self.ext:
-                for potential, time, current, scan, index, wepotential in data:
-                    cycles.update({int(scan): cycles.get(int(scan), []) + [(wepotential, current)]})
+                #TODO: get headers y unpack appropriately
+                try:
+                    for potential, time, current, scan, index, wepotential in data:
+                        cycles.update({int(scan): cycles.get(int(scan), []) + [(wepotential, current)]})
+                except ValueError :
+                    pass
             else:
                 scan = 1
                 #TODO: chk fwd

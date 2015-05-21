@@ -154,7 +154,11 @@ class Area(object):
         self.CV = CV
     
     def big(self):
-        return max(self.values())
+        #TODO: mejorar
+        stuff = self.vars()
+        del stuff['geom']
+        maxV = max(stuff.values())
+        return maxV if maxV else self.geom
         
     def update(self, **stuff):
         vars(self).update(**stuff)
@@ -175,7 +179,7 @@ class Area(object):
         return vars(self)[key]
     
     def vars(self):
-        return vars(self)
+        return dict(vars(self))
     #TODO: call
 
 #..

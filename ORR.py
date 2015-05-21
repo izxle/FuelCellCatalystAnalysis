@@ -20,6 +20,7 @@ def tafel(cycle, WE=None, rL=.2, rU=.4, par=1.5, sr=20., graph=True, copy=False)
     bbb = potential[rrr]
     print column_stack((bbb, aaa))
     #TODO: ECSA
+    #current = current/WE.area.big()
     current = current/WE.area.big()
     #get diffusion controled current JL
     #TODO: auto cut
