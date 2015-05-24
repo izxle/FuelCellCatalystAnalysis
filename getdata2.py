@@ -28,6 +28,7 @@ class Folder(object):
     def _getFiles(self):
         #TODO: exclude folders
         files = glob.glob(self.fpath + '/*' + self.ext)
+        #TODO: insert filter 4 No files
         if self.verb>2: print files
         return files
     
