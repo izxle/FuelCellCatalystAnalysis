@@ -72,8 +72,9 @@ class Folder(object):
             if '.xls' in self.ext:
                 #TODO: get headers y unpack appropriately
                 try:
+                    #TODO: unfold cn numpy, cut data & apply ranges 4 scans
                     for potential, time, current, scan, index, wepotential in data:
-                        cycles.update({int(scan): cycles.get(int(scan), []) + [(wepotential, current)]})
+                        cycles.update({int(scan): cycles.get(eint(scan), []) + [(wepotential, current)]})
                 except ValueError :
                     pass
             else:
