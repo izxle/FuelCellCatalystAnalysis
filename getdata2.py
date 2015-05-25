@@ -1,11 +1,6 @@
-import glob
+from glob import glob
 from re import split as resplit
-import matplotlib.pyplot as plt
 import numpy as np
-    
-    
-reSep = "\s+"
-pat = "\x00" #some txt hav it @ end
 
 #TODO: maybe add a File class: getdata, getcycles, graph
 
@@ -18,16 +13,20 @@ class Folder(object):
         self.verb = verb
         self.ext = ext
         self.fpath = fpath
-        if self.verb>2: print self.fpath
-        self.files = {nam.lstrip(self.fpath): {'cycles': None} for nam in (
-                            self._getFiles() if not files else files)}
-        if self.verb>1: print self.files
+        #if self.verb>2: print self.fpath
+        self.files = self.__getFiles(fpath, files)
+        #if self.verb>1: print self.files
         self._getData()
         self._getCycles()
     
+    def __getFiles(self, fpath, files):
+        "returns" 
+        return {nam.lstrip(self.fpath): {'cycles': None}
+                for nam in (self._getFiles() if not files else files)}
+    
     def _getFiles(self):
         #TODO: exclude folders
-        files = glob.glob(self.fpath + '/*' + self.ext)
+        files = glob(self.fpath + '/*' + self.ext)
         #TODO: insert filter 4 No files
         if self.verb>2: print files
         return files
@@ -136,11 +135,8 @@ class Folder(object):
 #    plt.plot(*zip(*data))
 #    plt.show()
 
-#module stuff ?????
+
 if __name__=="__main__":
     pass
 else:
     pass
-    #del resplit
-    #del glob
-    #del reSep
