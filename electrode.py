@@ -158,7 +158,7 @@ class Area(object):
         stuff = self.vars()
         del stuff['geom']
         maxV = max(stuff.values())
-        return maxV if maxV else self.geom
+        return maxV #if maxV else self.geom
         
     def update(self, **stuff):
         vars(self).update(**stuff)

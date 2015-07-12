@@ -3,12 +3,17 @@ from numpy import loadtxt, array
 from numpy import max as npmax
 
 class Folder(object):
-    def __init__(self, path='', nams=[]):
+    def __init__(self, path='', nams=[], verb=False):
         self.path = path
-        self.nams = nams
+        self.nams = []
+        for nam in nams:
+            self.nams += nam if isinstance(nam, list) else [nam]
         self._chkExt()
         self._getFiles()
         self._getCycles()
+        
+    def getCycle(self, nam, cycle):
+        return self.files[nam]['cycles'][cycle]
 
     def _getFiles(self):
         self.files = {}
@@ -78,6 +83,6 @@ class Folder(object):
                     fwd = False
                 cycles[scan].append((potential, current))
                 last = potential
-            for ix in range(1, len(cycles)+1):
+            for ix in range(1, len(cycles)):
                 cycles[ix] = array(cycles[ix])
             self.files[nam]["cycles"] = cycles

@@ -1,4 +1,4 @@
-from getdata2 import *
+from getdata import *
 from electrode import *
 from re import search
 from arraytoexcel import toClipboardForExcel
@@ -6,49 +6,74 @@ import CV, CO, ORR
 import matplotlib.pyplot as plt
 import sys
 #init
-def runAll(fpath=None, ext = ".txt", COnam=None, CVnam=None, bCV=True, bCO=True,
-            mCat=5., vSolv=2., pCatCen=30., area=0.196, vInk=10., addH=True,
-            CVsr=50., CVrangLow=0.4, CVrangHigh=0.6, COrangCOHigh=1.,
-            COsr=20., COrangCLow=0.4, COrangCHigh=0.6, COrangCOLow=0.6,
-            ORRrangLow=0.2, ORRrangHigh=0.4, ORRshift=1.0, ORRsr=20., bORR=True,
-            verb=False, graph=[0,0,0,0], copy=False, MEA=False, retFold=False,
-            CVfirst=False):
-    #graph = [CV, CO, Tafel, KL]
-    #init
-    #electrode and ink data
-    ink = Ink(mCat=mCat, vSolv=vSolv, pCatCen=pCatCen)
-    WE = Electrode(area=0.196, ink=ink, vInk=vInk)
-    #get filenames cn folder
-    folder = Folder(fpath=fpath, ext=ext, verb=verb)
-    #TODO: get useful file names
-    nams = folder.getNams()
-    if verb: print nams
-    #TODO: mejorar
-    #runs
-    if bCV:
-        Vars = {'sr': CVsr, 'rCl': CVrangLow, 'rCu': CVrangHigh,
-                'copy': copy, 'graph': graph[0]}
-        CVpath = '\\' + CVnam + ext
-        fCV = folder.getCycles(CVpath)[1] if CVfirst else None
-        cCV = folder.getCycles(CVpath, last=True)
-        aCV = CV.H(cCV, fCV=fCV, **Vars)
+def runAll(fpath, ink_params, electrode_params,
+           CV_params, CO_params, ORR_params,
+           verb):
+    #--INIT--
+    # ink and electrode data
+    if verb: print 'fpath:', fpath
+    ink = Ink(**ink_params)
+    WE = Electrode(ink=ink, **electrode_params)
+    
+    # get filenames cn folder
+    #TODO: auto get ORR nams
+    nams = [obj.get("nam") for obj in [CV_params, CO_params, 
+                                        ORR_params] if obj.get("nam")]
+    if verb: print 'nams:', nams
+    data = Folder(path=fpath, nams=nams, verb=verb)
+    if verb: print 'data.nams:', data.nams
+    
+    #--RUNS--
+    if CV_params['run']:
+        if verb: print "Running CV.."
+        params = dict(CV_params)
+        params["exe"] = params["run"]
+        del params["run"]
+        del params["nam"]
+        if params['first']:
+            params['first'] = data.getCycle(CV_params['nam'], 1)
+        # get last cycle
+        #TODO: detect when -1 not complete cycle and use -2
+        params["cycle"] = data.getCycle(CV_params['nam'], -1)
+        # get area from CV
+        aCV = CV.run(**params)
+        # store area
         WE.area.update(CV=aCV)
-    if bCO:
-        Vars = {'sr': COsr, 'rCl':COrangCLow, 'rCu': COrangCHigh, 'graph': graph[1],  
-                'rCOl': COrangCOLow, 'rCOu': COrangCOHigh, 'copy': copy, 'addH': addH}
-        COpath = '\\' + COnam + ext
-        cCO = folder.getCycles(COpath)
-        aCO, aH = CO.run(cCO, **Vars)
+        if verb: print ".. CV done."
+       
+    if CO_params['run']:
+        if verb: print "Running CO.."
+        params = dict(CO_params)
+        params["exe"] = params["run"]
+        del params["run"]
+        del params["nam"]
+        # get cycles
+        first = data.getCycle(CO_params['nam'], 1)
+        second = data.getCycle(CO_params['nam'], 2)
+        # get areas from CO and H
+        aCO, aH = CO.run(first, second, **params)
+        # store areas
         WE.area.update(CO=aCO, H=aH)
-    if bCV or bCO: WE.setECSA()
-    if bORR:
-        Vars = {'sr': ORRsr, 'rL': ORRrangLow, 'rU': ORRrangHigh,
-                'par': ORRshift, 'copy': copy, 'graph': graph[2]}
-        ORRfiles = {int(search("[0-9]+00", nam).group(0)): nam for nam in nams if "00" in nam}
-        cTafel = folder.getCycles(ORRfiles[1600])[1]
-        #TODO: get ciclo util
-        WE.setActs(ORR.tafel(cTafel, WE, **Vars))
+        if verb: print ".. CO done."
+    # set ECSA if area from CV.H, CO.H or CO.CO
+    WE.setECSA()
+    
+    if ORR_params['run'] and WE.ECSA:
+        if verb: print "Running ORR.."
+        params = ORR_params
+        del params['nams']
+        # get RPM values from nams
+        nams = {int(search("[0-9]+00", nam).group(0)): nam
+                for nam in ORR_params['nams'] if "00" in nam}
+        # get last cycle
+        #TODO: input cycle
+        cycle = data.getCycle(nams[1600], -1)
+        # calc and  store activities
+        WE.setActs(ORR.tafel(cycle, WE, **params))
         #KL
-        cORR = {val: folder.getCycles(nam)[1] for val, nam in ORRfiles.items()}
+        cORR = {val: data.getCycle(nam, -1)
+                for val, nam in nams.iteritems()}
         WE.setKL(ORR.KL(cORR, WE, graph=graph[3], copy=copy))
-    return (WE, folder) if retFold else WE
+        if verb: print ".. ORR done."
+
+    return WE

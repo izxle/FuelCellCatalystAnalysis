@@ -5,18 +5,19 @@ from arraytoexcel import toClipboardForExcel
 
 #TODO: maybe a var Cycle con props utils
 
-def tafel(cycle, WE=None, rL=.2, rU=.4, par=1.5, sr=20., graph=True, copy=False):
+def tafel(cycle, WE=None, base=None, iL_lower=.2, iL_upper=.4,
+          par=1.5, sr=20., graph=True, copy=False):
+    # unzip data
     potential = cycle[:,0]
     current = cycle[:,1]
-    #cut worth? & diff 2 get rang 4 sweep util
-    
-    #TODO: auto cut
-    rang = (potential>rL)[1:] & (diff(potential)>=0)
+    # cut for useful data
+    #TODO: auto calc treshold
+    rang = (potential > iL_lower)[1:] & (diff(potential) >= 0)
     potential = potential[rang]
     current = current[rang]
     #current to specific density [A/cm2 Pt]
-    rrr = (potential>0.89)&(potential<0.91)
-    aaa = current[rrr]/WE.mCatCen/1.e-6
+    rrr = (potential > 0.89) & (potential <  0.91)
+    aaa = current[rrr] / WE.mCatCen / 1.e-6
     bbb = potential[rrr]
     print column_stack((bbb, aaa))
     #TODO: ECSA
@@ -24,10 +25,10 @@ def tafel(cycle, WE=None, rL=.2, rU=.4, par=1.5, sr=20., graph=True, copy=False)
     current = current/WE.area.big()
     #get diffusion controled current JL
     #TODO: auto cut
-    JLrang = (potential>rL) & (potential<rU)
+    JLrang = (potential>iL_lower) & (potential<iL_upper)
     JL = average(current[JLrang])
     #correction 2 get Jk, cut apres 0.4 pk ruido
-    rang = (potential>rU)
+    rang = (potential>iL_upper)
     potential = potential[rang]
     current = current[rang]
     Jk = current*JL / (JL - current)
@@ -92,7 +93,7 @@ def tafel(cycle, WE=None, rL=.2, rU=.4, par=1.5, sr=20., graph=True, copy=False)
 def KL(cycles, WE, graph=True, copy=False):#rpm, cycle, WE, graph=True):
     #TODO: mejor x, y, array
     x, y = [], []
-    for rpm, cycle in cycles.items():
+    for rpm, cycle in cycles.iteritems():
         #same as in Tafel
         potential = cycle[:,0]
         current = cycle[:,1]
