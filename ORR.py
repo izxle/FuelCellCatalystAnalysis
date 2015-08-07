@@ -1,48 +1,109 @@
 import matplotlib.pyplot as plt
 from pylab import polyfit, poly1d
-from numpy import average, diff, log10, column_stack
+from numpy import average, diff, log10, column_stack, array, hsplit, append
 from arraytoexcel import toClipboardForExcel
 
-#TODO: maybe a var Cycle con props utils
 
-def tafel(cycle, WE=None, rL=.2, rU=.4, par=1.5, sr=20., graph=True, copy=False):
-    potential = cycle[:,0]
-    current = cycle[:,1]
-    #cut worth? & diff 2 get rang 4 sweep util
+def unzipos(cycle, verb=False):
+    #x, y = hsplit(cycle, 2)
+    x, y = cycle[:, 0], cycle[:, 1]
     
-    #TODO: auto cut
-    rang = (potential>rL)[1:] & (diff(potential)>=0)
+    if verb>2: print '     init unzip', len(x)
+    rang = diff(x) > 0
+    
+    x = x[rang]
+    y = y[rang]
+    
+    if len(x)==0: raise Exception('Error in splitting. ORR.')
+    if verb>2: print '     diff', len(x)
+    
+    rang = array(True, dtype=bool)
+    temp = x[0]
+    flag = True
+    for E in x[1:]:
+        if E >= temp and flag:
+            rang = append(rang, True)
+        else:
+            rang = append(rang, False)
+            flag = False
+        temp = E
+
+    x = x[rang]
+    y = y[rang]
+    
+    if len(x)==1: raise Exception('Sweep in unsupported direction. ORR.')
+
+    if verb>2: print '     fin unzip', len(x)
+
+    return x, y
+
+def tafel(cycle, WE=None, base=None, iL_lower=.2, iL_upper=.4,
+          shift=1.5, sr=20., graph=True, copy=False, rpm=1600, verb=False):
+    # unzip data # OLD procedure
+    #potential = cycle[:,0]
+    #current = cycle[:,1]
+    #if base:
+    #    xB = base[:, 0]
+    #    yB = base[:, 1]
+    ## cut for useful data
+    ##TODO: auto calc treshold
+    #rang = (potential > iL_lower)[1:] & (diff(potential) >= 0)
+    #potential = potential[rang]
+    #current = current[rang]
+    
+    # unzip data
+    potential, current = unzipos(cycle, verb)
+    
+    if graph>1:
+        plt.figure()
+        plt.plot(potential, current)
+    # cut for useful data
+    #TODO: add onother filter
+    rang = potential > iL_lower
     potential = potential[rang]
     current = current[rang]
-    #current to specific density [A/cm2 Pt]
-    rrr = (potential>0.89)&(potential<0.91)
-    aaa = current[rrr]/WE.mCatCen/1.e-6
-    bbb = potential[rrr]
-    print column_stack((bbb, aaa))
-    #TODO: ECSA
-    #current = current/WE.area.big()
-    current = current/WE.area.big()
-    #get diffusion controled current JL
+    if base:
+        xB, yB = unzipos(base)
+        yB = yB[rang]
+    else:
+        yB = array([current[-1] for i in range(len(current))])
+    if graph>1:
+        plt.figure()
+        plt.plot(potential, current)
+    # remove base
+    current -= yB
+    
+    if graph>1:
+        plt.figure()
+        plt.plot(potential, current)
+    # current to specific density [A/cm2 Pt]
+    current = current / WE.area.big()
+    # get diffusion controled current JL
     #TODO: auto cut
-    JLrang = (potential>rL) & (potential<rU)
+    JLrang = (potential > iL_lower) & (potential < iL_upper)
     JL = average(current[JLrang])
-    #correction 2 get Jk, cut apres 0.4 pk ruido
-    rang = (potential>rU)
+    # correction 2 get Jk, cut @ upper limit for noise
+    #TODO: auto cut
+    rang = (potential > iL_upper)
     potential = potential[rang]
     current = current[rang]
-    Jk = current*JL / (JL - current)
-    #tafel slopes
+    Jk = current * JL / (JL - current)
+    
+    #TODO: get Ik @ 0.9V for acts
+    
+    # tafel slopes calcs
+    # to log scale
     logJk = log10(abs(Jk))
     #TODO: calc tafel rangs
-    #get points cn pend neg
-    negS = diff(logJk)<0
+    # get points cn pend neg
+    negS = diff(logJk) < 0
     potential = potential[negS]
     current = current[negS]
     logJk = logJk[negS]
-    lowCh = logJk[-1] + par  #####arbitrario TODO: calc
+    lowCh = logJk[-1] + shift  #####arbitrario TODO: calc
     ##
-    lowRang = (logJk>lowCh) & (logJk<lowCh+1)
-    highRang = (logJk>lowCh+1) & (logJk<lowCh+2)
+    lowRang = (logJk > lowCh) & (logJk<lowCh + 1)
+    highRang = (logJk > lowCh + 1) & (logJk<lowCh + 2)
     #TOpatch: start ~0.92V
     
     ##
@@ -55,26 +116,28 @@ def tafel(cycle, WE=None, rL=.2, rU=.4, par=1.5, sr=20., graph=True, copy=False)
     lowFit = poly1d(lowfit)
     highfit = polyfit(potential[highRang], highJk, 1)
     highFit = poly1d(highfit)
-    conv = WE.area.big()*1e3/WE.mCatCen
+    conv = WE.area.big() * 1e3 / WE.mCatCen
     #get acts
     
     acts = {key: {mode: {potential: factor*10**fit(potential)
-                for potential in [0.9,0.85,0.8]}
-                for mode, factor in [("area", 1), ("mass", conv)]}
-                for key, fit in [("low", lowFit), ("high", highFit)]}
+                         for potential in [0.9,0.85,0.8]}
+                  for mode, factor in [("area", 1), ("mass", conv)]}
+            for key, fit in [("low", lowFit), ("high", highFit)]}
     #TODO: report slopes
-    print lowfit
-    acts['tafel'] = 1/lowfit[0]
+    #print lowfit
+    acts['tafel'] = {}
+    acts['tafel']['low'] = 1/lowfit[0]
+    acts['tafel']['high'] = 1/highfit[0]
     #copy to excel
     if copy:
         toClipboardForExcel(column_stack((potential, logJk)))
-        raw_input("copy ...")
+        raw_input("copy logJk...")
         print '... done'
-        toClipboardForExcel(column_stack((potential, lowJk)))
-        raw_input("copy ...")
+        toClipboardForExcel(column_stack((potential[lowRang], lowJk)))
+        raw_input("copy lowJk...")
         print '... done'
-        toClipboardForExcel(column_stack((potential, logJk)))
-        raw_input("copy ...")
+        toClipboardForExcel(column_stack((potential[highRang], highJk)))
+        raw_input("copy highJk...")
         print '... done'
     #plot
     if graph:#graph:
@@ -90,9 +153,9 @@ def tafel(cycle, WE=None, rL=.2, rU=.4, par=1.5, sr=20., graph=True, copy=False)
     return acts
 
 def KL(cycles, WE, graph=True, copy=False):#rpm, cycle, WE, graph=True):
-    #TODO: mejor x, y, array
+    #TODO: substract base
     x, y = [], []
-    for rpm, cycle in cycles.items():
+    for rpm, cycle in cycles.iteritems():
         #same as in Tafel
         potential = cycle[:,0]
         current = cycle[:,1]
@@ -121,3 +184,40 @@ def KL(cycles, WE, graph=True, copy=False):#rpm, cycle, WE, graph=True):
         plt.title("KL")
         plt.show()
     return 1/m
+
+def plot(cycles, graph=True, copy=False, verb=False):
+    plt.figure()
+    for rpm, cycle in cycles.iteritems():
+        if verb: print '    plotting ORR', rpm
+        x, y = unzipos(cycle, verb)
+        #copy to excel
+        if copy:
+            toClipboardForExcel(column_stack((x, y)))
+            raw_input("copy ORR {}...".format(rpm))
+            print '  ... done'
+        #plot            
+        if graph:
+            plt.plot(x, y, label=str(rpm))
+    if graph: 
+        plt.legend(title='RPM', loc=0)
+    
+def run(cycles, WE, run, graph, rpm=1600, verb=False, **params):
+    if 'ORR' in run:
+        if verb: print '  init plottting'
+        plot(cycles, graph=graph, copy=params['copy'], verb=verb)
+        if verb: print '  fin plottting'
+    if 'tafel' in run and WE.ECSA:
+        cycle = cycles[rpm]
+        if verb: print '  init tafel'
+        acts = tafel(cycle, WE, graph=graph, verb=verb, **params)
+        if verb: print '  fin tafel'
+        WE.setActs(acts)
+    if 'KL' in run:
+        if verb: print '  init KL'
+        B = KL(cycles, WE, graph=graph, copy=params['copy'])
+        if verb: print '  fin KL'
+        WE.setKL(B)
+    if graph: 
+        plt.show()
+    return WE
+    

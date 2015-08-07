@@ -1,127 +1,161 @@
-#TODO: quitar lin base dl CO
 from arraytoexcel import toClipboardForExcel
-from scipy.integrate import trapz
-#from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 import numpy as np
 
-def run(cycle, sr=20., rCl=0.4, rCu=0.6, rCOl=0.6, rCOu=.9, graph=True, addH=True, copy=False):
+#TODO: decorate plt.plot to allow xy arrays
+
+def CO(first, second, C_lower=0.4, C_upper=0.6,
+       CO_lower=0.6, CO_upper=.9, copy=False):
     """
     cycle: cycles dict {scan, array(data)}
     sr: sweep rate [mV/s]
-    rCl: range lower Carbon capacitance
-    rCu: range upper Carbon capacitance
-    graph: 0[-], 1[CO], <1[CO+H]
-    addH: 0[CO], 1[CO+H], <1[H]
+    C_lower: range lower Carbon capacitance
+    C_upper: range upper Carbon capacitance
     """
-    #in case only H from CV
-    if addH>1:
-        #separate x, y
-        x = cycle[1][:,0]
-        y = cycle[1][:,1]
-        #cut
-        #TODO: auto cut
-        rang = (np.diff(x)>=0)
-        x = x[rang]
-        y = y[rang]
-        #calc
-        #vvvvvvvvvvvvvvv
-        #TODO: calc lims
-        #^^^^^^^^^^^^^^^
-        rangH = (x<rCl)
-        rangC = (x>rCl)&(x<rCu)
-        x = x[rangH]
-        y = y[rangH] - np.average(y[rangC])
-        #ElectoChemical Surface Area
-        ECSA = trapz(y, x)/(210.e-6*sr*1.e-3) #cm2
-        #plot
-        if graph:
-            plt.figure()
-            plt.plot(x, y)
-            plt.title("CO-H")
-            plt.xlabel('Potencial (V)')
-            plt.ylabel('Corriente (A)')
-        if graph>1:
-            pass
-        return ECSA
-    #separate x, y
-    x = cycle[1][:,0]
-    #patch, in OLD cycles diff size
+    # separate x, y
+    potential_raw = first[:,0]
+    # substract 2 from 1
+    #PATCH, in some files first and second diff size by 1 point
     try:
-        y = cycle[1][:,1] - cycle[2][:,1]
+        current_raw = first[:,1] - second[:,1]
     except ValueError:
         try:
-            y = cycle[1][1:,1] - cycle[2][:,1]
+            current_raw = first[1:,1] - second[:,1]
         except ValueError:
-            y = cycle[1][:,1] - cycle[2][1:,1]
-    #cut
-    #TODO: auto cut
-    rang = (np.diff(x)>=0)
-    x = x[rang]
-    y = y[rang]
-    #cut bkgdn noise
-    rangCl = (x>rCl)&(x<rCu)
-    rangCu = (x>rCOu)
-    xx = np.concatenate((x[rangCl], x[rangCu]))
-    yy = np.concatenate((y[rangCl], y[rangCu]))    
-    m, b = np.polyfit(xx, yy, 1)
+            current_raw = first[:,1] - second[1:,1]
+    # cut
+    #TODO: auto calc treshold
+    rangPos = (np.diff(potential_raw) >= 0)
+    potential = potential_raw[rangPos]
+    current = current_pos = current_raw[rangPos]
+    # cut background noise
+    rangC_lower = (potential > C_lower) & (potential < C_upper)
+    rangC_upper = (potential > CO_upper)
+    potential_C = np.concatenate( (potential[rangC_lower],
+                                   potential[rangC_upper]) )
+    current_C = np.concatenate( (current[rangC_lower],
+                                 current[rangC_upper]) )
+    # get baseline eq
+    m, b = np.polyfit(potential_C, current_C, 1)
+    # get CO peak
+    #TODO: auto calc treshold
+    rangCO = (potential > CO_lower) & (potential < CO_upper)
+    xCO = potential[rangCO]
+    yCO = current[rangCO]
+    # substract baseline
+    base_raw = m * potential[rangCO] + b
+    yCO -= base_raw
     
-    rangCO = (x>rCOl)&(x<rCOu)
-    yCO = y[rangCO]
-    yCO -= m*x[rangCO] + b
-    #copy to excel
+    #generate baseline + second cycle
+    #TODO: tidy up
+    x2 = second[:, 0]
+    y2 = second[:, 1]
+    rang2pos = (np.diff(x2) >= 0)
+    x2 = x2[rang2pos]
+    y2 = y2[rang2pos]
+    rang2CO = (x2 > CO_lower) & (x2 < CO_upper)
+    x2 = x2[rang2CO]
+    y2 = y2[rang2CO]
+    #TODO: fix, base_raw & y2 not the same lenght
+    #base = base_raw + y2
+    
+    # copy to excel
     if copy:
-        toClipboardForExcel(np.column_stack((x, y)))
-        raw_input("copy CO profile...")
-        print '... done'        
-    #plot difference
-    #TODO: add grey area
-    if graph>1:
-        plt.figure()
-        if copy:
-            toClipboardForExcel(cycle[1])
-            raw_input("copy CO 1...")
-            print '... done'
-            toClipboardForExcel(cycle[2])
-            raw_input("copy CO 2...")
-            print '... done'
-        plt.plot(*zip(*cycle[1]), color='b', linestyle=':')
-        plt.plot(*zip(*cycle[2]), color='g', linestyle=':')
-        plt.plot(x, y)
-        plt.plot(x[(x>rCu)&(x<rCOu)], x[(x>rCu)&(x<rCOu)]*0)
-        plt.title("CO")
-        plt.legend(['1', "2", 'norm'])
-    
-    if addH:
-        rangH = (x<0.4)&(y<0.0)
-        xH = x[rangH]
-        yH = y[rangH]*-1.
-        
-    #ElectoChemical Surface Area
-    ECSA = trapz(yCO, x[rangCO])/(2.*210.e-6*sr*1.e-3) #cm2
-    #plot limd
-    if graph:
-        plt.figure()
-        plt.plot(x[rangCO], yCO)
-        plt.xlabel('Potencial (V)')
-        plt.title("CO-peak")
-        plt.ylabel('Corriente (A)')
-        if addH:
-            plt.figure()
-            plt.title("CO-H")
-            plt.plot(xH,yH)
-        plt.show()
-    if addH:
-        aH = trapz(yH, xH)/(210.e-6*sr*1.e-3) #cm2
-        return ECSA, aH
-    else:
-        return ECSA
+        toClipboardForExcel(first)
+        raw_input("copy CO 1...")
+        print '... done'
+        toClipboardForExcel(second)
+        raw_input("copy CO 2...")
+        print '... done'
+        if copy>1:
+            toClipboardForExcel(np.column_stack( (potential, current) ))
+            raw_input("copy CO (1 - 2)...")
+            print '... done'        
+    # return xyCO, base_rawCO, baseCO
+    return (xCO, yCO), (xCO, base_raw)#, (xCO, base)
 
-def H(cycle, sr=20., graph=True):
-    
-    return
 
-#0.6 a 1
+def H(first, second, C_lower, copy=False):
+    # separate x, y
+    potential_raw = first[:,0]
+    # substract 1 from 2
+    #PATCH, in some files first and second diff size by 1 point
+    try:
+        current_raw = second[:,1] - first[:,1]
+    except ValueError:
+        try:
+            current_raw = second[1:,1] - first[:,1]
+        except ValueError:
+            current_raw = second[:,1] - first[1:,1]
+    # cut for anodic sweep
+    #TODO: auto calc treshold
+    rangPos = (np.diff(potential_raw) >= 0)
+    potential = potential_raw[rangPos]
+    current = current_pos = current_raw[rangPos]
+    # cut for H region
+    rangH = (potential < C_lower)
+    potential = potential[rangH]
+    current = current[rangH]
+    # return xyH
+    return (potential, current)
+    
+def plot(first, second, paramsCO, paramsH, exe, graph):
+    """
+    TODO: add somethig here
+    """
+    #TODO: use plt.axes for better structure
+    if graph > 1:
+        if "CO" in exe:
+            xyCO, base_rawCO = paramsCO#, baseCO = paramsCO
+            if graph>2:
+                plt.figure()
+                # treated data
+                x, y = xyCO
+                plt.plot(x, y)
+                # baseline
+                #TODO: add baseline
+                plt.title("CO peak")
+        if "H" in exe:
+            xyH = paramsH
+            if graph>2:
+                plt.figure()
+                # treated data
+                x, y = xyH
+                plt.plot(x, y)
+                plt.title("H-ads peak")
+    plt.figure()
+    plt.plot(*zip(*first), color='b', linestyle=':', label='1')
+    plt.plot(*zip(*second), color='g', linestyle=':', label='2')
+    plt.title("CO")
+    plt.legend(title='Cycle', loc=0)
+    if graph > 1: 
+        #TODO: plot baselines into raw data
+        #TODO: fill integrated area
+        pass
+    plt.show()
+    
+def run(first, second, sr=20.,
+        C_lower=0.4, C_upper=0.6, CO_lower=0.6, CO_upper=.9,
+        exe=True, graph=True, copy=False):
+    #INIT data
+    params = {}
+    ECSA_CO = None
+    ECSA_H = None
+    #RUN stuff
+    if "CO" in exe or exe is True:
+        params["CO"] = CO(first, second, C_lower, C_upper,
+                       CO_lower, CO_upper, copy)
+        x, y = params["CO"][0]
+        ECSA_CO = np.trapz(y, x)/(210.e-6*sr*1.e-3) #cm2
+    if "H" in exe:
+        params["H"] = H(first, second, C_lower, copy)
+        x, y = params["H"]
+        ECSA_H = np.trapz(y, x)/(420.e-6*sr*1.e-3) #cm2
+    if graph: 
+        plot(first, second, paramsCO=params.get("CO"),
+             paramsH=params.get("H"), exe=exe, graph=graph)
+    
+    return ECSA_CO, ECSA_H
 
 if __name__=="__main__":
     pass
