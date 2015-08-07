@@ -42,10 +42,11 @@ class Folder(object):
             self._getCyclesFromElse()
 
     def _getCyclesFromXls(self):
+        #TODO: calc sweep rate
         for nam in self.files.iterkeys():
             # potential, time, current, scan, index, we.potential
             data = self.files[nam]["data"]
-            n = npmax(data[:, 3]) # get max scan number
+            n = int(npmax(data[:, 3])) # get max scan number
             cycles = [[] for ix in range(n + 1)]
             for ditto in data:
                 potential = ditto[5]
@@ -57,6 +58,7 @@ class Folder(object):
                 self.files[nam]["cycles"] = cycles
 
     def _getCyclesFromElse(self):
+        #TODO: calc sweep rate
         for nam in self.files.iterkeys():
             # potential, current, time
             data = self.files[nam]["data"]

@@ -44,9 +44,13 @@ class Electrode(object):
     def setKL(self, B):
         self.B = B
     
-    def setECSA(self):
+    def setECSA(self, area='CO'):
         #chkUnits
-        self.ECSA = 100.*self.area.big()/self.catLoad/self.area.geom
+        if area=='CO' and self.area.CO:
+            area = self.area.CO
+        else: # elif 'max':
+            area = self.area.big()
+        self.ECSA = 100. * area / self.catLoad / self.area.geom
         
     def setActs(self, acts):
         self.acts = acts
@@ -79,7 +83,7 @@ Deposited ink:
 acts@0.9V:
     {9} A/mgPt
     {10} A/cm^2
-    {11} V/dec[i]
+    {11} V/dec[i]    {14} V/dec[i]
 KL: B = {12}
 Electrochemical Active Area: {13} cm^2/ug{6}
 """)
@@ -102,12 +106,14 @@ Electrochemical Active Area: {13} cm^2/ug{6}
 #Electrochemical Active Area: {13} cm^2
 #""")
         try:
-            return blah.format(self.area.geom, self.area.CO, self.area.H, self.area.CV,
-                self.vInk, self.mCat, self.catCen, self.mCatCen, self.catLoad,
-                self.acts['low']['mass'][0.9], self.acts['low']['area'][0.9],
-                self.acts['tafel'], self.B, self.ECSA)
-        #except TypeError, e:
-        #    return str(e)
+            return blah.format(self.area.geom, self.area.CO, self.area.H,
+                self.area.CV, self.vInk, self.mCat, self.catCen, self.mCatCen,
+                self.catLoad, self.acts['low']['mass'][0.9],
+                self.acts['low']['area'][0.9], self.acts['tafel']['low'],
+                self.B, self.ECSA, self.acts['tafel']['high'])
+        except TypeError, e:
+            print 'Electrode print error.'
+            return str(e)
         except ValueError, e:
             print [self.area.geom, self.area.CO, self.area.CV, self.area.H,
                 self.vInk, self.mCat, self.catCen, self.mCatCen, self.catLoad,

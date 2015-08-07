@@ -29,9 +29,9 @@ def plot(cycle, xH, yH, y_base, first=None, graph=True, exe=True):
     plt.figure()
     plt.title("CV")
     plt.plot(*zip(*cycle), label="last")
-    if first: 
+    if (not first is None) and (not first is False):
         plt.plot(*zip(*cycle), label="first")
-    plt.legend(title="Cycle")
+    plt.legend(title="Cycle", loc=0)
     if "H" in exe:
         plt.plot(xH, y_base, label="H-ads base line")    
         if graph > 1:
@@ -46,7 +46,7 @@ def copy2excel(cycle, first=False):
     toClipboardForExcel(cycle)
     raw_input("copy last cycle CV...")
     print '... done'
-    if first:
+    if (not first is None) and (not first is False):
         toClipboardForExcel(first)
         raw_input("copy first cycle CV...")
         print '... done'
