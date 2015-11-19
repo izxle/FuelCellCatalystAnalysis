@@ -26,6 +26,7 @@ class Folder(object):
                                loadtxt(path.join(self.path, nam), **kw)}
 
     def _chkExt(self):
+        #TODO: separte using final point in self.nam
         #to diferentiate extentions
         self.ext = self.nams[0][-4:]
         self._chkXls()
