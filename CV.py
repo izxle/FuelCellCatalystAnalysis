@@ -1,6 +1,8 @@
-import numpy as np
-from arraytoexcel import toClipboardForExcel
 import matplotlib.pyplot as plt
+import numpy as np
+
+from arraytoexcel import toClipboardForExcel
+
 
 def H(cycle, C_lower=0.4, C_upper=0.6):
     # unzip data
@@ -8,9 +10,9 @@ def H(cycle, C_lower=0.4, C_upper=0.6):
     current = cycle[:,1]
     # cut for anodic sweep
     #TODO: auto calc treshold
-    rangPos = (np.diff(potential) >= 0)
-    potential = potential[rangPos]
-    current = current[rangPos]
+    rangPos = np.diff(potential) >= 0
+    potential = potential[1:][rangPos]
+    current = current[1:][rangPos]
     # cut for baseline
     rangC = (potential > C_lower) & (potential < C_upper)
     m, b = np.polyfit(potential[rangC], current[rangC], 1)
@@ -26,30 +28,30 @@ def H(cycle, C_lower=0.4, C_upper=0.6):
     return xH, yH, baseline
 
 def plot(cycle, xH, yH, y_base, first=None, graph=True, exe=True):
-    plt.figure()
+    plt.figure('CV')
     plt.title("CV")
-    plt.plot(*zip(*cycle), label="last")
+    plt.plot(*list(zip(*cycle)), label="last")
     if (not first is None) and (not first is False):
-        plt.plot(*zip(*cycle), label="first")
+        plt.plot(*list(zip(*cycle)), label="first")
     plt.legend(title="Cycle", loc=0)
     if "H" in exe:
         plt.plot(xH, y_base, label="H-ads base line")    
         if graph > 1:
-            plt.figure()
+            plt.figure('CV - $H_{ads} peak$')
             plt.plot(xH, yH)
             plt.title("CV-H")
             plt.xlabel('Potencial (V)')
             plt.ylabel('Corriente (A)')
-    plt.show()
+    # plt.show()
     
 def copy2excel(cycle, first=False):
     toClipboardForExcel(cycle)
-    raw_input("copy last cycle CV...")
-    print '... done'
+    eval(input("copy last cycle CV..."))
+    print('... done')
     if (not first is None) and (not first is False):
         toClipboardForExcel(first)
-        raw_input("copy first cycle CV...")
-        print '... done'
+        eval(input("copy first cycle CV..."))
+        print('... done')
 
 def run(cycle, sr=50.0, C_lower=0.4, C_upper=0.6, first=None,
         exe=True, graph=False, copy=False):

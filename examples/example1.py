@@ -27,4 +27,4 @@ kwargs = {
     'graph': [1, 1, 1, 1], 
     'copy': False}
 comp = runAll(**kwargs)
-print comp
+print(comp)
