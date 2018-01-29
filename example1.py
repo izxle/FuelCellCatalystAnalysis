@@ -1,57 +1,65 @@
 # -*- coding: utf-8 -*-
+import matplotlib.pyplot as plt
+
 from catCaract import runAll
-path=r"C:\Users\user\Documents\GitHub\FuelCellCatalystAnalysis\examples\data1"
+
+path = r"C:\Users\PARSTAT 2273\Dropbox\Nuwb\180123"
 path = path.replace("\\", "/")
 
-kwargs = {'fpath': path, #path to directory with data
-    'ink_params': {
-            'mCat': 2.5075, #mg
-            'vSolv': 1.920, #mL
-            'pCatCen': 30.
-           },
-    'electrode_params':{
-                 'area': 0.196, 
-                 'vInk': 10.
-                },
-    'CV_params': {
-           'run': '',
-           'nam': 'GO30%Pt311014jCV2_3.txt', 
-           'sr': 50.,
-           # cutoff limits
-           #TODO: automize
-           'C_lower': 0.49, 'C_upper': 0.6,
-           # plotting opts
-           'first': False,
-           'graph': True,
-           'copy': False
+kwargs = {'fpath': path,  # path to directory with data
+          'ink_params': {
+              'mCat': 10.3,  # mg
+              'vSolv': 5,  # mL
+              'pCatCen': 20.
           },
-    'CO_params': {
-           'run': 'H CO', 
-           'nam': 'GO30%Pt311014jCO1_2.txt', 
-           'sr': 20.,
-           # cutoff limits
-           'C_lower': 0.4, 'C_upper': 0.6, 
-           'CO_lower': 0.6, 'CO_upper':.9,
-           # plotting opts
-           'graph': 3,
-           'copy': False
+          'electrode_params': {
+              'area': 0.196,  # cm^2
+              'vInk': 10.  # uL
           },
-    'ORR_params': {
-            'run': False, 
-            'nam': [ #TODO: auto get nams
-                     'GO30%Pt311014jORR400-1_5.txt',
-                     'GO30%Pt311014jORR900-1_6.txt',
-                     'GO30%Pt311014jORR1600-1_7.txt'
-                    ],
-            # cutoff limits
-            'iL_lower': 0.4, 'iL_upper': 0.5, 
-            #TODO: automize shift
-            'shift': .1, #arbitrary parameter
-            # plotting opts
-            'graph': True,
-            'copy': False
-           },
-    'verb': True #verbosity
-    }
+          'CV_params': {
+              'run': 'H',
+              'nam': 'Pt-ETEK-20% 180123 CV.txt',
+              'sr': 50.,
+              # cutoff limits
+              # TODO: automize
+              'C_lower': 0.37, 'C_upper': 0.46,
+              # plotting opts
+              'first': False,
+              'graph': 2,
+              'copy': False
+          },
+          'CO_params': {
+              'run': 'H CO',
+              'nam': 'Pt-ETEK-20% 180123 CO.txt',
+              'sr': 50.,
+              # cutoff limits
+              'C_lower': 0.4, 'C_upper': 0.6,
+              'CO_lower': 0.75, 'CO_upper': 1.,
+              # plotting opts
+              'graph': 2,
+              'copy': False
+          },
+          'ORR_params': {
+              'run': 'ORR tafel KL',
+              'filenames': [  # TODO: auto get nams
+                  'Pt-ETEK-20% 180123 ORR 400.txt',
+                  'Pt-ETEK-20% 180123 ORR 900.txt',
+                  'Pt-ETEK-20% 180123 ORR 1600.txt'
+                  # 'Pt-ETEK-20% 180123 ORR 2500.txt'
+              ],
+              # cutoff limits
+              'iL_lower': 0.4, 'iL_upper': 0.5,
+              # TODO: automize shift
+              'shift': .1,  # arbitrary parameter
+              # plotting opts
+              'graph': 3,
+              'copy': False
+          },
+          'ext': '.txt',
+          'delimiter': ';',
+          'autolab': True,
+          'verb': 1  # verbosity
+          }
 comp = runAll(**kwargs)
-print comp
+print(comp)
+plt.show()
