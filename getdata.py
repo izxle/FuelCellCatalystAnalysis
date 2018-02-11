@@ -97,7 +97,7 @@ class Folder(object):
                         if (potential - last) > 0:
                             fwd = True
                         # if bkwrd y just past init, scan++
-                        elif potential <= init and last > init:
+                        elif potential <= init < last:
                             scan += 1
                     elif (potential - last) < 0:
                         fwd = False

@@ -19,15 +19,15 @@ def runAll(fpath, ink_params, electrode_params,
     ink = Ink(**ink_params)
     WE = Electrode(ink=ink, **electrode_params)
 
-    # get filenames cn folder
+    # get filenames with folder
     # TODO: auto get ORR filenames
     filenames = [obj['nam'] for obj in [CV_params, CO_params] if obj["run"]]
     if ORR_params['run']:
         filenames += ORR_params['filenames']
 
-    verb and print('filenames:', filenames)
+    verb and print('filenames:', '\n'.join(f'  {fn}' for fn in filenames))
     data = Folder(fpath=fpath, filenames=filenames, delimiter=delimiter, autolab=autolab, verb=verb, ext=ext)
-    verb and print('data.filenames:', data.files.keys())
+    verb and print('data.filenames:', '\n'.join(f'  {fn}' for fn in data.files))
 
     # --RUNS--
     if CV_params['run']:

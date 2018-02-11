@@ -11,7 +11,7 @@ def unzipos(cycle, verb=False):
 
     if verb > 2: print('     init unzip', len(x))
     rang = diff(x) > 0
-
+    if verb > 2: print('     positives:', rang.sum())
     x = x[1:][rang]
     y = y[1:][rang]
 
@@ -181,7 +181,7 @@ def tafel(cycle, WE=None, base=None, iL_lower=.2, iL_upper=.4,
 
 
 def KL(cycles, WE, graph=True, copy=False):  # rpm, cycle, WE, graph=True):
-    # TODO: substract base
+    # TODO: subtract base
     x, y = [], []
     for rpm, cycle in list(cycles.items()):
         # same as in Tafel
