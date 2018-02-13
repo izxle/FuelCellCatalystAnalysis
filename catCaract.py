@@ -41,8 +41,11 @@ def runAll(fpath, ink_params, electrode_params,
         if params['first']:
             params['first'] = data.getCycle(CV_params['nam'], 1)
         # get last cycle
-        # TODO: detect when cycle -1 is not complete and use -2
-        params["cycle"] = data.getCycle(CV_params['nam'], -1)
+        last_cycle = data.getCycle(CV_params['nam'], -1)
+        # TODO: fix arbitrary number 10
+        if last_cycle.size < 10:
+            last_cycle = data.getCycle(CV_params['nam'], -2)
+        params['cycle'] = last_cycle
         # get area from CV
         aCV = CV.run(**params)
         # store area
