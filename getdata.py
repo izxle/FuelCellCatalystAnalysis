@@ -120,8 +120,8 @@ class Folder(object):
             self.verb and print(filename[-17:-10], scan if self.autolab else scan - 1)
 
     def getCycle(self, filename, index=-1):
-        if index == -1:
-            index = len(self.files[filename]["cycles"])
+        if index < 0:
+            index += len(self.files[filename]["cycles"]) + 1
         return self.files[filename]["cycles"][index]
 
     def getCycles(self, filename, last=False):

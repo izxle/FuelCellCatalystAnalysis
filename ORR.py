@@ -83,10 +83,12 @@ def tafel(cycle, WE=None, base=None, iL_lower=.2, iL_upper=.4,
     potential = potential[rang]
     current = current[rang]
     verb > 2 and print(f'    cut down to <{len(current)}>')
-    if base:
+    if base is not None:
         xB, yB = unzipos(base)
-        assert len(current) == len(yB), f'cycle<{len(current)}> and base<{len(base)}> have different length.'
+        # extra_data_before = len(yB) - len(rang)
+        # yB = yB[extra_data_before:]
         yB = yB[rang]
+        assert len(current) == len(yB), f'cycle<{len(current)}> and base<{len(base)}> have different length.'
     else:
         yB = empty(len(current), dtype=float)
         yB[:] = current[-1]
@@ -99,7 +101,7 @@ def tafel(cycle, WE=None, base=None, iL_lower=.2, iL_upper=.4,
     if graph > 1:
         plt.plot(potential, current, label='Corrected data')
         plt.legend()
-    # current to specific density [A/cm2 Pt]
+    # current to specific density [A / cm^2 Pt]
     current /= WE.area.big()
     # get diffusion controled current JL
     # TODO: auto cut
@@ -174,7 +176,7 @@ def tafel(cycle, WE=None, base=None, iL_lower=.2, iL_upper=.4,
         plt.plot(potential[highRang], highFit(potential[highRang]))
         # plt.plot(highJk, potential[highRang])
         plt.xlabel('Potencial (V)')
-        plt.ylabel('log Jk (A/cm2 Pt)')
+        plt.ylabel('log Jk (A/cm$^2_{Pt}$)')
         plt.title("Tafel")
         # plt.show()
     return acts
@@ -197,7 +199,7 @@ def KL(cycles, WE, graph=True, copy=False):  # rpm, cycle, WE, graph=True):
         JL = average(current[JLrang])
         x.append(float(rpm) ** -0.5)
         y.append(-1.0 / JL)
-    m, b = polyfit(x, y, 1)  # mA/(cm^2*rpm^.5)
+    m, b = polyfit(x, y, 1)  # mA / (cm^2 * rpm^.5)
     # copy to excel
     if copy:
         toClipboardForExcel(column_stack((x, y)))
@@ -208,9 +210,9 @@ def KL(cycles, WE, graph=True, copy=False):  # rpm, cycle, WE, graph=True):
         plt.figure('ORR - Koutecký-Levich')
         plt.plot(x, [m * i + b for i in x])
         plt.scatter(x, y)
-        plt.xlabel('RPM^-0.5 (s^-0.5)')
-        plt.ylabel('JL (cm2/A)')
-        plt.title("KL")
+        plt.xlabel('RPM$^-0.5$ (s$^-0.5$)')
+        plt.ylabel('JL (cm$^2$ / A)')
+        plt.title("Koutecký-Levich")
         # plt.show()
     return 1 / m
 
@@ -219,7 +221,7 @@ def plot(cycles, graph=True, copy=False, verb=False):
     if graph:
         plt.figure('ORR - Raw data')
     for rpm, cycle in list(cycles.items()):
-        if verb: print('    plotting ORR', rpm)
+        verb and print('    plotting ORR', rpm)
         x, y = unzipos(cycle, verb)
         # copy to excel
         if copy:
@@ -229,25 +231,28 @@ def plot(cycles, graph=True, copy=False, verb=False):
         # plot
         if graph:
             plt.plot(x, y, label=str(rpm))
+            plt.title('ORR - Voltammogram - Positive sweeps')
+            plt.xlabel('Potential (V)')
+            plt.ylabel('Current (A)')
     if graph:
         plt.legend(title='RPM', loc=0)
 
 
 def run(cycles, WE, run, graph, rpm=1600, verb=False, **params):
     if 'ORR' in run:
-        if verb: print('  init plottting')
+        verb and print('  init plottting')
         plot(cycles, graph=graph, copy=params['copy'], verb=verb)
-        if verb: print('  fin plottting')
+        verb and print('  fin plottting')
     if 'tafel' in run and WE.ECSA:
         cycle = cycles[rpm]
-        if verb: print('  init tafel')
+        verb and print('  init tafel')
         acts = tafel(cycle, WE, graph=graph, verb=verb, **params)
-        if verb: print('  fin tafel')
+        verb and print('  fin tafel')
         WE.setActs(acts)
     if 'KL' in run:
-        if verb: print('  init KL')
+        verb and print('  init KL')
         B = KL(cycles, WE, graph=graph, copy=params['copy'])
-        if verb: print('  fin KL')
+        verb and print('  fin KL')
         WE.setKL(B)
     if graph:
         pass
