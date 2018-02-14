@@ -210,7 +210,7 @@ def KL(cycles, WE, graph=True, copy=False):  # rpm, cycle, WE, graph=True):
         plt.figure('ORR - Koutecký-Levich')
         plt.plot(x, [m * i + b for i in x])
         plt.scatter(x, y)
-        plt.xlabel('RPM$^-0.5$ (s$^-0.5$)')
+        plt.xlabel('RPM$^{-0.5}$ (s$^{-0.5}$)')
         plt.ylabel('JL (cm$^2$ / A)')
         plt.title("Koutecký-Levich")
         # plt.show()

@@ -49,6 +49,18 @@ class Folder(object):
 
         try:
             self.verb and print("Loading", path.basename(filepath), end=' ')
+            if self.autolab:
+                with open(filepath, 'r') as f:
+                    headers = f.readline()[:-1].split(self.delimiter)
+                # TODO: use list of unused columns
+                if 'Current range' in headers:
+                    # indices = list(range(len(headers)))
+                    # indices.remove(headers.index('Current range'))
+                    # kw['usecols'] = indices
+
+                    index = headers.index('Current range')
+                    kw['usecols'] = [i for i, header in enumerate(headers)
+                                     if header != 'Current range']
             data = np.loadtxt(filepath, **kw)
             self.verb and print("... done.")
         except Exception as e:

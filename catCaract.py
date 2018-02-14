@@ -27,7 +27,7 @@ def runAll(fpath, ink_params, electrode_params,
         if ORR_params['background']:
             filenames.append(ORR_params['background'])
 
-    verb and print('filenames:', '\n'.join(f'  {fn}' for fn in filenames))
+    verb and print('filenames:\n', '\n'.join(f'  {fn}' for fn in filenames))
     data = Folder(fpath=fpath, filenames=filenames, delimiter=delimiter, autolab=autolab, verb=verb, ext=ext)
     verb and print('data.filenames:', '\n'.join(f'  {fn}' for fn in data.files))
 
