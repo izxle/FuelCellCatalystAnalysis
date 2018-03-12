@@ -1,3 +1,6 @@
+from os import path
+
+import matplotlib.pyplot as plt
 import numpy as np
 
 from logger import log
@@ -34,7 +37,7 @@ def extract_data(data, headers=None):
     else:
         round_precision = 3
         # create data object
-        m = data.shape[0]
+        m = raw_data.shape[0]
         scan = np.zeros(m)
 
         init_potential = round(data['potential'][0], round_precision)
@@ -49,28 +52,38 @@ def extract_data(data, headers=None):
 
 
 class Data(object):
-    def __init__(self, data=None, headers=None, *args, **kwargs):
+    def __init__(self, name=None, raw_data=None, headers=None, *args, **kwargs):
+        self.name = name
         self.raw_data = np.array([])
         self.potential = np.array([])
         self.current = np.array([])
         self.scan = np.array([])
         self.time = np.array([])
 
-        data_dict = extract_data(data, headers)
+        data_dict = extract_data(raw_data, headers)
         for name, value in data_dict.items():
             self.set_property(name, value)
 
     def set_potential(self, array):
         self.potential = array
 
+    def get_potential(self):
+        return np.copy(self.potential)
+
     def set_current(self, array):
         self.current = array
+
+    def get_current(self):
+        return np.copy(self.current)
 
     def set_scan(self, array):
         self.scan = array
 
     def set_time(self, array):
         self.time = array
+
+    def get_time(self):
+        return np.copy(self.time)
 
     def set_property(self, name, value):
         setattr(self, name, value)
@@ -86,39 +99,44 @@ def read(filename, log_level=0, delimiter=';', **kwargs):
 
     # read file to get headers
     with open(filename, 'r') as f:
-        headers = list(map(str.strip,
-                           f.readline().lower().split(delimiter)))
+        first_line = f.readline().lower()
 
-    # get index of first potential/current in headers
-    potential_index = next(i for i, h in enumerate(headers)
-                           if 'potential' in h)
-    current_index = next(i for i, h in enumerate(headers)
-                         if 'current' in h)
+    assert delimiter in first_line, f'Delimiter {delimiter} not found in headers.'
+
+    headers = list(map(str.strip, first_line.split(delimiter)))
+
+    # # get index of first potential/current in headers
+    # potential_index = next(i for i, h in enumerate(headers)
+    #                        if 'potential' in h)
+    # current_index = next(i for i, h in enumerate(headers)
+    #                      if 'current' in h)
     # read data
+    name = path.basename(filename)
     raw_data = np.genfromtxt(filename, skip_header=1, delimiter=delimiter)
+    data = Data(name=name, raw_data=raw_data, headers=headers)
 
-    potential = raw_data[:, potential_index]
-    current = raw_data[:, current_index]
-
-    # check if scan info in headers
-    if any('scan' in h for h in headers):
-        scan_index = headers.index('scan')
-        data = raw_data[:, (potential_index, current_index, scan_index)]
-    # calculate scan otherwise
-    else:
-        round_precision = 3
-        # create data object
-        m = len(potential)
-        data = np.zeros((m, 3))
-        data[:, 0] = potential
-        data[:, 1] = current
-
-        init_potential = round(potential[0], round_precision)
-        scan = 0.5
-        for i, E in enumerate(potential):
-            if round(E, round_precision) == init_potential:
-                scan += 0.5
-            data[i, 2] = int(scan)
+    # potential = raw_data[:, potential_index]
+    # current = raw_data[:, current_index]
+    #
+    # # check if scan info in headers
+    # if any('scan' in h for h in headers):
+    #     scan_index = headers.index('scan')
+    #     data = raw_data[:, (potential_index, current_index, scan_index)]
+    # # calculate scan otherwise
+    # else:
+    #     round_precision = 3
+    #     # create data object
+    #     m = len(potential)
+    #     data = np.zeros((m, 3))
+    #     data[:, 0] = potential
+    #     data[:, 1] = current
+    #
+    #     init_potential = round(potential[0], round_precision)
+    #     scan = 0.5
+    #     for i, E in enumerate(potential):
+    #         if round(E, round_precision) == init_potential:
+    #             scan += 0.5
+    #         data[i, 2] = int(scan)
 
     return data
 
@@ -127,4 +145,6 @@ if __name__ == '__main__':
     from visualize import view
 
     data = read(r"C:\Users\PARSTAT 2273\Dropbox\Nuwb\Echem\PtBi\180215\4ta-PtBi-H\CO_7.txt", delimiter='\t')
-    view(data)
+    view(data, 'time', 'current')
+    view(data, 'potential', 'current')
+    plt.show()
