@@ -83,6 +83,7 @@ def tafel(cycle, WE=None, base=None, iL_lower=.2, iL_upper=.4,
     potential = potential[rang]
     current = current[rang]
     verb > 2 and print(f'    cut down to <{len(current)}>')
+    # TODO: interpolate base to ignore it's size
     if base is not None:
         xB, yB = unzipos(base)
         # extra_data_before = len(yB) - len(rang)
