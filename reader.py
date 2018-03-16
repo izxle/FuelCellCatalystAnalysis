@@ -6,8 +6,8 @@ import numpy as np
 from logger import log
 
 
-def extract_data(data, headers=None):
-    raw_data = np.copy(data)
+def extract_data(res_data, headers=None):
+    raw_data = np.copy(res_data)
     if headers is None:
         # default headers
         headers = ['potential', 'current', 'time']
@@ -24,15 +24,15 @@ def extract_data(data, headers=None):
                           if 'time' in h)
 
     # get data
-    data = dict()
-    data['potential'] = raw_data[:, potential_index]
-    data['current'] = raw_data[:, current_index]
-    data['time'] = raw_data[:, time_index]
+    res_data = dict()
+    res_data['potential'] = raw_data[:, potential_index]
+    res_data['current'] = raw_data[:, current_index]
+    res_data['time'] = raw_data[:, time_index]
 
     # check if scan info in headers
     if any('scan' in h for h in headers):
         scan_index = headers.index('scan')
-        data['scan'] = raw_data[:, scan_index]
+        res_data['scan'] = raw_data[:, scan_index]
     # calculate scan otherwise
     else:
         round_precision = 3
@@ -40,15 +40,15 @@ def extract_data(data, headers=None):
         m = raw_data.shape[0]
         scan = np.zeros(m)
 
-        init_potential = round(data['potential'][0], round_precision)
+        init_potential = round(res_data['potential'][0], round_precision)
         scan_num = 0.5
-        for i, E in enumerate(data['potential']):
+        for i, E in enumerate(res_data['potential']):
             if round(E, round_precision) == init_potential:
                 scan_num += 0.5
             scan[i] = int(scan_num)
-        data['scan'] = scan
+        res_data['scan'] = scan
 
-    return data
+    return res_data
 
 
 class Data(object):
@@ -101,42 +101,14 @@ def read(filename, log_level=0, delimiter=';', **kwargs):
     with open(filename, 'r') as f:
         first_line = f.readline().lower()
 
-    assert delimiter in first_line, f'Delimiter {delimiter} not found in headers.'
+    assert delimiter in first_line, f'Delimiter "{delimiter:!u}" not found in headers.'
 
     headers = list(map(str.strip, first_line.split(delimiter)))
 
-    # # get index of first potential/current in headers
-    # potential_index = next(i for i, h in enumerate(headers)
-    #                        if 'potential' in h)
-    # current_index = next(i for i, h in enumerate(headers)
-    #                      if 'current' in h)
-    # read data
     name = path.basename(filename)
     raw_data = np.genfromtxt(filename, skip_header=1, delimiter=delimiter)
     data = Data(name=name, raw_data=raw_data, headers=headers)
 
-    # potential = raw_data[:, potential_index]
-    # current = raw_data[:, current_index]
-    #
-    # # check if scan info in headers
-    # if any('scan' in h for h in headers):
-    #     scan_index = headers.index('scan')
-    #     data = raw_data[:, (potential_index, current_index, scan_index)]
-    # # calculate scan otherwise
-    # else:
-    #     round_precision = 3
-    #     # create data object
-    #     m = len(potential)
-    #     data = np.zeros((m, 3))
-    #     data[:, 0] = potential
-    #     data[:, 1] = current
-    #
-    #     init_potential = round(potential[0], round_precision)
-    #     scan = 0.5
-    #     for i, E in enumerate(potential):
-    #         if round(E, round_precision) == init_potential:
-    #             scan += 0.5
-    #         data[i, 2] = int(scan)
 
     return data
 
