@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 
 from config import read_config
-from electrode import Electrode
+from electrode_new import Electrode, Ink
 
 
 def get_args(argv=''):
@@ -24,13 +24,17 @@ def run(argv=''):
     args = get_args(argv)
 
     config = read_config(args.config)
-    electrode = Electrode(**config.Electrode)
+
+    ink = Ink(**config.Ink)
+    # read files and parse data
+    electrode = Electrode(ink=ink, **config.Electrode)
 
     # TODO: add analysis
-    config.Analysis
+    electrode.analyze(**config.Analysis)
 
-    return electrode
+    return res
 
 
 if __name__ == '__main__':
-    run(argv='')
+    res = run(argv='')
+    print(res)
