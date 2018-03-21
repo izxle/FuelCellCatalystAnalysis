@@ -7,7 +7,7 @@ from electrode_new import Electrode, Ink
 def get_args(argv=''):
     parser = ArgumentParser()
     # argument definition
-    parser.add_argument('configfile')
+    parser.add_argument('configfile', nargs='?', default='config.ini')
     # read arguments
     if argv:
         if isinstance(argv, str):
@@ -23,7 +23,7 @@ def get_args(argv=''):
 def run(argv=''):
     args = get_args(argv)
 
-    config = read_config(args.config)
+    config = read_config(args.configfile)
 
     ink = Ink(**config.Ink)
     # read files and parse data
@@ -36,5 +36,5 @@ def run(argv=''):
 
 
 if __name__ == '__main__':
-    res = run(argv='')
+    res = run()
     print(res)
