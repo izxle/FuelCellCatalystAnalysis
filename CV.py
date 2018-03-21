@@ -50,11 +50,11 @@ def plot(cycle, xH, yH, y_base, first=None, graph=True, exe=True):
 
 def copy2excel(cycle, first=False):
     toClipboardForExcel(cycle)
-    eval(input("copy last cycle CV..."))
+    input("copy last cycle CV...")
     print('... done')
     if (first is not None) and (first is not False):
         toClipboardForExcel(first)
-        eval(input("copy first cycle CV..."))
+        input("copy first cycle CV...")
         print('... done')
 
 

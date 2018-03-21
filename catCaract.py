@@ -24,7 +24,7 @@ def runAll(fpath, ink_params, electrode_params,
     filenames = [obj['nam'] for obj in [CV_params, CO_params] if obj["run"]]
     if ORR_params['run']:
         filenames += ORR_params['filenames']
-        if ORR_params['background']:
+        if ORR_params.get('background'):
             filenames.append(ORR_params['background'])
 
     verb and print('filenames:\n', '\n'.join(f'  {fn}' for fn in filenames))
@@ -41,7 +41,7 @@ def runAll(fpath, ink_params, electrode_params,
         if params['first']:
             params['first'] = data.getCycle(CV_params['nam'], 1)
         # get last cycle
-        last_cycle = data.getCycle(CV_params['nam'], -1)
+        last_cycle = data.getCycle(CV_params['nam'], -2)
         # TODO: fix arbitrary number 10
         if last_cycle.size < 10:
             last_cycle = data.getCycle(CV_params['nam'], -2)
@@ -78,7 +78,8 @@ def runAll(fpath, ink_params, electrode_params,
         verb and print("Running ORR..")
         params = dict(ORR_params)
         del params['filenames']
-        del params['background']
+        if params.get('background'):
+            del params['background']
         # del params['run']
         # get RPM values from filenames
         filenames = {int(search("[0-9]+00", nam).group(0)): nam
@@ -87,16 +88,17 @@ def runAll(fpath, ink_params, electrode_params,
         # TODO: choose rpms
         params['cycles'] = {val: data.getCycle(nam, -1)
                             for val, nam in filenames.items()}
-        params['base'] = data.getCycle(ORR_params['background'], -1)
+        if ORR_params.get('background'):
+            params['base'] = data.getCycle(ORR_params['background'], -1)
         params['WE'] = WE
         params['verb'] = verb
         WE = ORR.run(**params)
         # get last cycle
-        ##TODO: input cycle
+        # TODO: input cycle
         # cycle = data.getCycle(filenames[1600], -1)
-        ## calc and  store activities
+        # calc and  store activities
         # WE.setActs(ORR.tafel(cycle, WE, **params))
-        ##KL
+        # KL
         # cORR = {val: data.getCycle(nam, -1)
         #        for val, nam in filenames.iteritems()}
         # WE.setKL(ORR.KL(cORR, WE, graph=graph[3], copy=copy))

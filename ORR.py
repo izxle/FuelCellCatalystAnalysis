@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from numpy import average, diff, log10, column_stack, zeros, empty
+from numpy import average, diff, log10, column_stack, zeros, empty, ndarray
 from pylab import polyfit, poly1d
 
 from arraytoexcel import toClipboardForExcel
@@ -161,13 +161,13 @@ def tafel(cycle, WE=None, base=None, iL_lower=.2, iL_upper=.4,
     # copy to excel
     if copy:
         toClipboardForExcel(column_stack((potential, logJk)))
-        eval(input("copy logJk..."))
+        input("copy logJk...")
         print('... done')
         toClipboardForExcel(column_stack((potential[lowRang], lowJk)))
-        eval(input("copy lowJk..."))
+        input("copy lowJk...")
         print('... done')
         toClipboardForExcel(column_stack((potential[highRang], highJk)))
-        eval(input("copy highJk..."))
+        input("copy highJk...")
         print('... done')
     # plot
     if graph:  # graph:
@@ -204,7 +204,7 @@ def KL(cycles, WE, graph=True, copy=False):  # rpm, cycle, WE, graph=True):
     # copy to excel
     if copy:
         toClipboardForExcel(column_stack((x, y)))
-        eval(input("copy KL..."))
+        input("copy KL...")
         print((m, b, '... done'))
     if graph:
         # TODO: add equation to graph
@@ -218,23 +218,31 @@ def KL(cycles, WE, graph=True, copy=False):  # rpm, cycle, WE, graph=True):
     return 1 / m
 
 
-def plot(cycles, graph=True, copy=False, verb=False):
-    if graph:
-        plt.figure('ORR - Raw data')
+def plot(cycles, graph=True, base=None, copy=False, verb=False):
+
     for rpm, cycle in list(cycles.items()):
         verb and print('    plotting ORR', rpm)
         x, y = unzipos(cycle, verb)
+        # plot
+        if graph:
+            plt.figure('ORR - Raw data')
+            plt.plot(x, y, label=str(rpm))
+            plt.title('ORR - Voltammogram - Raw positive sweeps')
+            plt.xlabel('Potential (V)')
+            plt.ylabel('Current (A)')
+            if isinstance(base, ndarray):
+                xB, yB = unzipos(base)
+                y -= yB
+                plt.figure('ORR - Corrected data')
+                plt.plot(x, y, label=str(rpm))
+                plt.title('ORR - Voltammogram - Positive sweeps')
+                plt.xlabel('Potential (V)')
+                plt.ylabel('Current (A)')
         # copy to excel
         if copy:
             toClipboardForExcel(column_stack((x, y)))
-            eval(input("copy ORR {}...".format(rpm)))
+            input("copy ORR {}...".format(rpm))
             print('  ... done')
-        # plot
-        if graph:
-            plt.plot(x, y, label=str(rpm))
-            plt.title('ORR - Voltammogram - Positive sweeps')
-            plt.xlabel('Potential (V)')
-            plt.ylabel('Current (A)')
     if graph:
         plt.legend(title='RPM', loc=0)
 
@@ -242,7 +250,7 @@ def plot(cycles, graph=True, copy=False, verb=False):
 def run(cycles, WE, run, graph, rpm=1600, verb=False, **params):
     if 'ORR' in run:
         verb and print('  init plottting')
-        plot(cycles, graph=graph, copy=params['copy'], verb=verb)
+        plot(cycles, graph=graph, copy=params['copy'], verb=verb, base=params.get('base'))
         verb and print('  fin plottting')
     if 'tafel' in run and WE.ECSA:
         cycle = cycles[rpm]

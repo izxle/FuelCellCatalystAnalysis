@@ -68,14 +68,14 @@ def CO(first, second, C_lower=0.4, C_upper=0.6,
     # copy to excel
     if copy:
         toClipboardForExcel(first)
-        eval(input("copy CO 1..."))
+        input("copy CO 1...")
         print('... done')
         toClipboardForExcel(second)
-        eval(input("copy CO 2..."))
+        input("copy CO 2...")
         print('... done')
         if copy > 1:
             toClipboardForExcel(np.column_stack((potential, current)))
-            eval(input("copy CO (1 - 2)..."))
+            input("copy CO (1 - 2)...")
             print('... done')
             # return xyCO, base_rawCO, baseCO
     return (xCO, yCO), (xCO, base_raw)  # , (xCO, base)
