@@ -109,16 +109,15 @@ def read_file(filename: str, delimiter: str = ';', log_level: int = 0, **kwargs)
     raw_data = np.genfromtxt(filename, skip_header=1, delimiter=delimiter)
     data = Data(name=name, raw_data=raw_data, headers=headers)
 
-
     return data
 
 
-def read_directory(directory: str = '.', filenames: Iterable[str] = None, extention: str = '.txt',
+def read_directory(directory: str = '.', filenames: Iterable[str] = None, extension: str = '.txt',
                    delimiter: str = ';'):
     directory = path.abspath(path.expanduser(directory))
     if filenames is None:
         filenames = [path.join(directory, fn)
-                     for fn in glob(path.join(directory, f'*{extention}'))]
+                     for fn in glob(path.join(directory, '*' + extension))]
 
     data = [read_file(filename, delimiter)
             for filename in filenames]
