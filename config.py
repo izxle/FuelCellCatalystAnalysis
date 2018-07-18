@@ -47,7 +47,8 @@ def parse_config_values(config):
                 value = float(value)
             elif value == r'\t':
                 value = '\t'
-            # TODO: get bool values
+            elif value.lower() in {'false', 'true', 'on', 'off', 'yes', 'no'}:
+                value = value.lower() in {'true', 'on', 'yes'}
             params[sec][name] = value
     return params
 
