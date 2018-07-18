@@ -2,7 +2,7 @@ import re
 from configparser import ConfigParser
 from os import path
 
-from electrode_new import Solvent, Catalyst, Ink
+from electrode_new import Solvent, Catalyst, Ink, Electrode
 
 
 class DictWithAttrs(dict):
@@ -90,8 +90,10 @@ def read_config(fname):
 
     ink = Ink(catalyst, solvent)
 
-    # electrode = Electrode(ink=ink,
-    #                       ink_sample_volume=params.electrode.ink_volume_deposited,
-    #                       area=params.electrode.area)
+    catalyst_sample = ink.sample(volume=params.electrode.ink_volume_deposited)
+
+    electrode = Electrode(catalyst=catalyst_sample,
+                          area=params.electrode.get('area'),
+                          diameter=params.electrode.get('diameter'))
 
     return params
