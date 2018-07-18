@@ -2,7 +2,9 @@
 from argparse import ArgumentParser
 
 from config import read_config
-from electrode_new import Electrode, Ink, Catalyst, Solvent
+from electrode import Electrode, Ink, Catalyst, Solvent
+from experiment import Experiment
+from reader import read_directory
 
 
 def get_args(argv=''):
@@ -42,8 +44,15 @@ def run(argv=''):
                           area=config.electrode.get('area'),
                           diameter=config.electrode.get('diameter'))
 
-    # TODO: add analysis
-    electrode.analyze(**config.Analysis)
+    data = read_directory(directory=config.general.path,
+                          extension=config.general.ext,
+                          delimiter=config.general.delimiter,
+                          filenames=config.general.filenames)
+
+    experiment = Experiment(data=data, electrode=electrode)
+
+    # # TODO: add analysis
+    # experiment.analyze()
 
     return res
 
