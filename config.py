@@ -43,14 +43,20 @@ class Params(DictWithAttrs):
 
 def parse_config_values(config):
     params = Params()
+    filenames = list()
     for sec in config.sections():
         params[sec] = DictWithAttrs()
         for name, value in config.items(sec):
             if name == 'run':
                 # TODO: make always list
                 value = re.split('[\s]*,?[\s*]', value)
+            elif name == 'filename':
+                filenames.append(value)
+            elif name == 'filenames':
+                value = list(map(str.strip, value.strip().split('\n')))
+                filenames.extend(value)
             elif '\n' in value:
-                value = list(map(str.strip, value.split('\n')))
+                value = list(map(str.strip, value.strip().split('\n')))
             # int values
             elif re.match('-?\d+$', value):
                 value = int(value)
@@ -62,6 +68,7 @@ def parse_config_values(config):
             elif value.lower() in {'false', 'true', 'on', 'off', 'yes', 'no'}:
                 value = value.lower() in {'true', 'on', 'yes'}
             params[sec][name] = value
+    params['GENERAL']['filenames'] = filenames
     return params
 
 
