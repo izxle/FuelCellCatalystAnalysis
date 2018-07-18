@@ -101,7 +101,7 @@ def read_file(filename: str, delimiter: str = ';', log_level: int = 0, **kwargs)
     with open(filename, 'r') as f:
         first_line = f.readline().lower()
 
-    assert delimiter in first_line, f'Delimiter "{delimiter:!u}" not found in headers.'
+    assert delimiter in first_line, f'Delimiter "{delimiter}" not found in headers.'
 
     headers = list(map(str.strip, first_line.split(delimiter)))
 
@@ -116,11 +116,13 @@ def read_directory(directory: str = '.', filenames: Iterable[str] = None, extens
                    delimiter: str = ';'):
     directory = path.abspath(path.expanduser(directory))
     if filenames is None:
-        filenames = [path.join(directory, fn)
-                     for fn in glob(path.join(directory, '*' + extension))]
+        filenames = glob(path.join(directory, '*' + extension))
 
-    data = [read_file(filename, delimiter)
-            for filename in filenames]
+    data = list()
+    for filename in filenames:
+        filepath = path.join(directory, filename)
+        if path.isfile(filepath):
+            data.append(read_file(filepath, delimiter))
 
     return data
 
