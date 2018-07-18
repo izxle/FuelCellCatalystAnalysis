@@ -3,15 +3,36 @@ from configparser import ConfigParser
 from os import path
 
 
-class Params(object):
-    def set(self, name, value):
+class Params(dict):
+    def __init__(self, *args, **kwargs):
+        self.update(*args, **kwargs)
+
+    def __setitem__(self, key, value):
+        name = str(key)
         setattr(self, name, value)
+        super().__setitem__(key, value)
+
+    def update(self, *args, **kwargs):
+        if args:
+            if len(args) > 1:
+                raise TypeError("update expected at most 1 arguments, "
+                                f"got {len(args)}")
+            other = dict(args[0])
+            for key in other:
+                self[key] = other[key]
+        for key in kwargs:
+            self[key] = kwargs[key]
+
+    def setdefault(self, key, value=None):
+        if key not in self:
+            self[key] = value
+        return self[key]
 
 
 def parse_config_values(config):
-    params = dict()
+    params = Params()
     for sec in config.sections():
-        params[sec] = dict()
+        params[sec] = Params()
         for name, value in config.items(sec):
             if name == 'run':
                 # TODO: make always list
@@ -33,18 +54,15 @@ def parse_config_values(config):
 
 def read_config(fname):
     config = ConfigParser(allow_no_value=True)
-    assert path.isfile(fname), f'{filename} does not exist, must be an existing file'
+    assert path.isfile(fname), f'{fname} does not exist, must be an existing file'
 
     config.read(fname)
 
-    params = Params()
-
-    # read GENERAL section
-    general = config['GENERAL']
+    # read directory path from GENERAL section
+    directory = config['GENERAL']['path']
     # extract path to directory
-    params.path = general['path']
-    assert path.isdir(params.path), f'{params.path} must be an existing directory'
+    assert path.isdir(directory), f'{directory} must be an existing directory'
 
-    config = parse_config_values(config)
+    params = parse_config_values(config)
 
     return params
