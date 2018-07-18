@@ -2,8 +2,6 @@ import re
 from configparser import ConfigParser
 from os import path
 
-from electrode_new import Solvent, Catalyst, Ink, Electrode
-
 
 class DictWithAttrs(dict):
     def __init__(self, *args, **kwargs):
@@ -67,7 +65,7 @@ def parse_config_values(config):
     return params
 
 
-def read_config(fname):
+def read_config(fname: str) -> Params:
     config = ConfigParser(allow_no_value=True)
     assert path.isfile(fname), f'{fname} does not exist, must be an existing file'
 
@@ -79,21 +77,5 @@ def read_config(fname):
     assert path.isdir(directory), f'{directory} must be an existing directory'
 
     params = parse_config_values(config)
-
-    catalyst = Catalyst(name=params.catalyst.name,
-                        mass=params.ink.catalyst_mass,
-                        active_center_name=params.catalyst.active_metal,
-                        active_center_percentage=params.catalyst.active_metal_percentage,
-                        support_name=params.catalyst.support)
-
-    solvent = Solvent(name=params.ink.solvent, volume=params.ink.solvent_volume)
-
-    ink = Ink(catalyst, solvent)
-
-    catalyst_sample = ink.sample(volume=params.electrode.ink_volume_deposited)
-
-    electrode = Electrode(catalyst=catalyst_sample,
-                          area=params.electrode.get('area'),
-                          diameter=params.electrode.get('diameter'))
 
     return params

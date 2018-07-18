@@ -1,7 +1,8 @@
+#!/usr/bin/env python
 from argparse import ArgumentParser
 
 from config import read_config
-from electrode_new import Electrode, Ink
+from electrode_new import Electrode, Ink, Catalyst, Solvent
 
 
 def get_args(argv=''):
@@ -25,9 +26,21 @@ def run(argv=''):
 
     config = read_config(args.configfile)
 
-    ink = Ink(**config.Ink)
-    # read files and parse data
-    electrode = Electrode(ink=ink, **config.Electrode)
+    catalyst = Catalyst(name=config.catalyst.name,
+                        mass=config.ink.catalyst_mass,
+                        active_center_name=config.catalyst.active_metal,
+                        active_center_percentage=config.catalyst.active_metal_percentage,
+                        support_name=config.catalyst.support)
+
+    solvent = Solvent(name=config.ink.solvent, volume=config.ink.solvent_volume)
+
+    ink = Ink(catalyst, solvent)
+
+    catalyst_sample = ink.sample(volume=config.electrode.ink_volume_deposited)
+
+    electrode = Electrode(catalyst=catalyst_sample,
+                          area=config.electrode.get('area'),
+                          diameter=config.electrode.get('diameter'))
 
     # TODO: add analysis
     electrode.analyze(**config.Analysis)
