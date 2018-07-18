@@ -2,13 +2,15 @@ import re
 from configparser import ConfigParser
 from os import path
 
+from electrode_new import Solvent, Catalyst, Ink
 
-class Params(dict):
+
+class DictWithAttrs(dict):
     def __init__(self, *args, **kwargs):
         self.update(*args, **kwargs)
 
     def __setitem__(self, key, value):
-        name = str(key)
+        name = str(key).lower().replace(' ', '_')
         setattr(self, name, value)
         super().__setitem__(key, value)
 
@@ -29,10 +31,22 @@ class Params(dict):
         return self[key]
 
 
+class Params(DictWithAttrs):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.catalyst = dict()
+        self.electrode = dict()
+        self.ink = dict()
+
+
+# ..
+# TODO: create classes for each section
+
+
 def parse_config_values(config):
     params = Params()
     for sec in config.sections():
-        params[sec] = Params()
+        params[sec] = DictWithAttrs()
         for name, value in config.items(sec):
             if name == 'run':
                 # TODO: make always list
@@ -65,5 +79,19 @@ def read_config(fname):
     assert path.isdir(directory), f'{directory} must be an existing directory'
 
     params = parse_config_values(config)
+
+    catalyst = Catalyst(name=params.catalyst.name,
+                        mass=params.ink.catalyst_mass,
+                        active_center_name=params.catalyst.active_metal,
+                        active_center_percentage=params.catalyst.active_metal_percentage,
+                        support_name=params.catalyst.support)
+
+    solvent = Solvent(name=params.ink.solvent, volume=params.ink.solvent_volume)
+
+    ink = Ink(catalyst, solvent)
+
+    # electrode = Electrode(ink=ink,
+    #                       ink_sample_volume=params.electrode.ink_volume_deposited,
+    #                       area=params.electrode.area)
 
     return params
