@@ -1,9 +1,9 @@
+from glob import glob
 from os import path
+from typing import Iterable
 
 import matplotlib.pyplot as plt
 import numpy as np
-
-from logger import log
 
 
 def extract_data(res_data, headers=None):
@@ -52,7 +52,7 @@ def extract_data(res_data, headers=None):
 
 
 class Data(object):
-    def __init__(self, name=None, raw_data=None, headers=None, *args, **kwargs):
+    def __init__(self, name: str = None, raw_data=None, headers=None, *args, **kwargs):
         self.name = name
         self.raw_data = np.array([])
         self.potential = np.array([])
@@ -92,10 +92,10 @@ class Data(object):
         return getattr(self, name)
 
 
-def read(filename, log_level=0, delimiter=';', **kwargs):
+def read_file(filename: str, delimiter: str = ';', log_level: int = 0, **kwargs):
     # set log level
-    if log_level:
-        log.setLevel(log_level)
+    # if log_level:
+    #     log.setLevel(log_level)
 
     # read file to get headers
     with open(filename, 'r') as f:
@@ -113,10 +113,23 @@ def read(filename, log_level=0, delimiter=';', **kwargs):
     return data
 
 
+def read_directory(directory: str = '.', filenames: Iterable[str] = None, extention: str = '.txt',
+                   delimiter: str = ';'):
+    directory = path.abspath(path.expanduser(directory))
+    if filenames is None:
+        filenames = [path.join(directory, fn)
+                     for fn in glob(path.join(directory, f'*{extention}'))]
+
+    data = [read_file(filename, delimiter)
+            for filename in filenames]
+
+    return data
+
+
 if __name__ == '__main__':
     from visualize import view
 
-    data = read(r"C:\Users\PARSTAT 2273\Dropbox\Nuwb\Echem\PtBi\180215\4ta-PtBi-H\CO_7.txt", delimiter='\t')
+    data = read_file(r"C:\Users\PARSTAT 2273\Dropbox\Nuwb\Echem\PtBi\180215\4ta-PtBi-H\CO_7.txt", delimiter='\t')
     view(data, 'time', 'current')
     view(data, 'potential', 'current')
     plt.show()
