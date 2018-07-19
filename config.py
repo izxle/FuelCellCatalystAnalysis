@@ -9,7 +9,11 @@ class DictWithAttrs(dict):
 
     def __setitem__(self, key, value):
         name = str(key).lower().replace(' ', '_')
-        setattr(self, name, value)
+        super().__setattr__(name, value)
+        super().__setitem__(key, value)
+
+    def __setattr__(self, key, value):
+        super().__setattr__(key, value)
         super().__setitem__(key, value)
 
     def update(self, *args, **kwargs):
