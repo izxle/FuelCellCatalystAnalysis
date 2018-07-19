@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 from argparse import ArgumentParser
 
+import matplotlib.pyplot as plt
+
 from config import read_config
 from electrode import Electrode, Ink, Catalyst, Solvent
 from experiment import Experiment
@@ -23,11 +25,7 @@ def get_args(argv=''):
     return args
 
 
-def run(argv=''):
-    args = get_args(argv)
-
-    config = read_config(args.configfile)
-
+def get_electrode(config):
     catalyst = Catalyst(name=config.catalyst.name,
                         mass=config.ink.catalyst_mass,
                         active_center_name=config.catalyst.active_metal,
@@ -43,20 +41,33 @@ def run(argv=''):
     electrode = Electrode(catalyst=catalyst_sample,
                           area=config.electrode.get('area'),
                           diameter=config.electrode.get('diameter'))
+    return electrode
 
+
+def get_data(config):
     data = read_directory(directory=config.general.path,
                           extension=config.general.ext,
                           delimiter=config.general.delimiter,
                           filenames=config.general.filenames)
+    return data
 
-    experiment = Experiment(data=data, electrode=electrode)
 
-    # # TODO: add analysis
-    # experiment.analyze()
+def run(argv=''):
+    args = get_args(argv)
 
-    return res
+    config = read_config(args.configfile)
+
+    electrode = get_electrode(config)
+    data = get_data(config)
+
+    experiment = Experiment(data=data,
+                            electrode=electrode,
+                            analysis_params=config.analysis)
+
+    return experiment
 
 
 if __name__ == '__main__':
     res = run()
     print(res)
+    plt.show()
