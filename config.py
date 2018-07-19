@@ -35,10 +35,49 @@ class Params(DictWithAttrs):
         self.catalyst = dict()
         self.electrode = dict()
         self.ink = dict()
-
-
 # ..
 # TODO: create classes for each section
+
+
+def parse_analysis_sections(cv=None, co=None, orr=None):
+    cv_params = DictWithAttrs(exe=cv.run,
+                              data=cv.filename,
+                              sweep_rate=cv.sweep_rate,
+                              c_range=cv.c_range,
+                              first=cv.first,
+                              graph=cv.graph,
+                              copy=cv.copy)
+
+    co_params = DictWithAttrs(exe=co.run,
+                              data=co.filename,
+                              sweep_rate=co.sweep_rate,
+                              c_range=co.c_range,
+                              co_range=co.c_range,
+                              graph=co.graph,
+                              copy=co.copy)
+
+    files_orr = dict()
+    for filename in orr.filenames:
+        match = re.search('[0-9]000?', filename)
+        if match:
+            files_orr[match.group()] = filename
+        elif orr.background:
+            files_orr['background'] = filename
+    orr_params = DictWithAttrs(exe=orr.run,
+                               data=files_orr,
+                               area=orr.area,
+                               sweep_rate=orr.sweep_rate,
+                               limit_current_range=orr.limit_current_range,
+                               rpm=orr.rpm,
+                               report=orr.report,
+                               shift=orr.shift,
+                               graph=orr.graph,
+                               copy=orr.copy)
+
+    analysis_params = DictWithAttrs(cv=cv_params,
+                                    co=co_params,
+                                    orr=orr_params)
+    return analysis_params
 
 
 def parse_config_values(config):
@@ -49,8 +88,11 @@ def parse_config_values(config):
         for name, value in config.items(sec):
             if name == 'run':
                 # TODO: make always list
-                value = re.split('[\s]*,?[\s*]', value)
-            elif name == 'filename':
+                value = re.split('\s*[, ]\s*', value)
+            elif 'range' in name:
+                value = re.split('\s*[, ]\s*', value)
+                assert len(value) == 2, f'{name} must have 2 values, found {len(value)}'
+            elif name in {'filename', 'background'}:
                 filenames.append(value)
             elif name == 'filenames':
                 value = list(map(str.strip, value.strip().split('\n')))
@@ -67,8 +109,13 @@ def parse_config_values(config):
                 value = '\t'
             elif value.lower() in {'false', 'true', 'on', 'off', 'yes', 'no'}:
                 value = value.lower() in {'true', 'on', 'yes'}
+            if value == ['']:
+                value = list()
+            elif 'range' in name:
+                value = list(map(float, value))
             params[sec][name] = value
     params['GENERAL']['filenames'] = filenames
+
     return params
 
 
@@ -85,4 +132,9 @@ def read_config(fname: str) -> Params:
 
     params = parse_config_values(config)
 
+    params['ANALYSIS'] = parse_analysis_sections(cv=params.cv,
+                                                 co=params.co,
+                                                 orr=params.orr)
+
     return params
+
