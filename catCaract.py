@@ -3,7 +3,7 @@ from re import search
 import CO
 import CV
 import ORR
-from electrode import *
+from electrode_old import *
 from getdata import *
 
 
