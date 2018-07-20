@@ -42,7 +42,7 @@ class Experiment:
             if i_data:
                 orr_data[name] = i_data
         if orr_params.exe and orr_data:
-            orr_params.data = orr_data
+            orr_params.orr_data = orr_data
             activities = ORR.run(**orr_params)
 
     def __str__(self):
