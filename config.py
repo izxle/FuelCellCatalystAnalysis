@@ -56,17 +56,17 @@ def parse_analysis_sections(cv=None, co=None, orr=None):
                               data=co.filename,
                               sweep_rate=co.sweep_rate,
                               c_range=co.c_range,
-                              co_range=co.c_range,
+                              co_range=co.co_range,
                               graph=co.graph,
                               copy=co.copy)
 
     files_orr = dict()
     for filename in orr.filenames:
-        match = re.search('[0-9]000?', filename)
-        if match:
-            files_orr[match.group()] = filename
-        elif orr.background:
-            files_orr['background'] = filename
+        rpm = re.search('[0-9]{,2}00', filename).group()
+        files_orr[rpm] = filename
+    if orr.background:
+        files_orr['background'] = orr.background
+
     orr_params = DictWithAttrs(exe=orr.run,
                                data=files_orr,
                                area=orr.area,
