@@ -67,8 +67,12 @@ class Data(object):
     def set_potential(self, array):
         self.potential = array
 
-    def get_potential(self):
-        return np.copy(self.potential)
+    def get_potential(self, scan=None):
+        if scan:
+            res = self.get_scan(scan)[0]
+        else:
+            res = np.copy(self.potential)
+        return res
 
     def set_current(self, array):
         self.current = array
@@ -78,6 +82,17 @@ class Data(object):
 
     def set_scan(self, array):
         self.scan = array
+
+    def get_scan(self, i: int):
+        if i == -1:
+            i = max(self.scan)
+        elif i == 0:
+            i = 1
+        mask = self.scan == i
+        potential = self.potential[mask]
+        current = self.current[mask]
+        cycle = np.vstack((potential, current))
+        return cycle
 
     def set_time(self, array):
         self.time = array
@@ -90,6 +105,13 @@ class Data(object):
 
     def get_property(self, name):
         return getattr(self, name)
+
+    def __iter__(self):
+        for E, i in zip(self.potential, self.current):
+            yield (E, i)
+
+    def __getitem__(self, item):
+        return self.current[item]
 
 
 def read_file(filename: str, delimiter: str = ';', log_level: int = 0, **kwargs):
@@ -118,11 +140,11 @@ def read_directory(directory: str = '.', filenames: Iterable[str] = None, extens
     if filenames is None:
         filenames = glob(path.join(directory, '*' + extension))
 
-    data = list()
+    data = dict()
     for filename in filenames:
         filepath = path.join(directory, filename)
         if path.isfile(filepath):
-            data.append(read_file(filepath, delimiter))
+            data[filename] = read_file(filepath, delimiter)
 
     return data
 
