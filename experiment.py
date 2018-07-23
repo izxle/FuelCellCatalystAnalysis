@@ -31,19 +31,26 @@ class Experiment:
         if co_params.exe and co_data:
             co_params.data = co_data
             area_H_CO, area_CO = CO.run(**co_params)
-            self.electrode.area.H = area_H_CV
+            self.electrode.area.H = area_H_CO
             self.electrode.area.CO = area_CO
 
         # ORR
         orr_params = self.analysis_params.orr
+
         orr_data = dict()
         for name, filename in orr_params.data.items():
             i_data = self.data.get(filename)
             if i_data:
                 orr_data[name] = i_data
         if orr_params.exe and orr_data:
+            orr_params.catalyst_mass = self.electrode.catalyst.active_center.mass
+            orr_params.area = self.electrode.area.big()
+            if self.electrode.area.CO:
+                orr_params.area = self.electrode.area.CO
+            del orr_params['data']
             orr_params.orr_data = orr_data
             activities = ORR.run(**orr_params)
+            self.orr_results = activities
 
     def __str__(self):
         return 'This is a temporary string'
