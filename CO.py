@@ -127,11 +127,11 @@ def plot(cycle_CO, cycle_baseline, paramsCO, paramsH, exe, graph):
         if "H" in exe:
             xyH = paramsH
             if graph > 2:
-                plt.figure(r'CO - normalized $H_{ads}$ peak')
+                plt.figure('CO - H_ads')
                 # treated data
                 x, y = xyH
                 plt.plot(x, y)
-                plt.title("H-ads peak")
+                plt.title("CO stripping - normalized $H_{ads}$ peak")
 
     potential_CO, current_CO = cycle_CO
     potential_baseline, current_baseline = cycle_baseline
@@ -149,7 +149,7 @@ def plot(cycle_CO, cycle_baseline, paramsCO, paramsH, exe, graph):
 
 def run(data, sweep_rate=20.,
         c_range=(0.4, 0.6), co_range=(0.6, 0.9),
-        exe=True, graph=True, baseline=True, copy=False):
+        exe='', graph=True, baseline=False, copy=False):
     # INIT data
     params = {}
     ECSA_CO = None
@@ -159,7 +159,7 @@ def run(data, sweep_rate=20.,
     cycle_baseline = data.get_scan(2)
 
     # RUN stuff
-    if "CO" in exe or exe is True:
+    if "CO" in exe:
         params["CO"] = CO(cycle_CO, cycle_baseline, c_range, co_range, add_baseline=baseline, copy=copy)
         x, y = params["CO"][0]
         ECSA_CO = np.trapz(y, x) / (210.e-6 * sweep_rate * 1.e-3)  # cm2
