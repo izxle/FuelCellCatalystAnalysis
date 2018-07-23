@@ -53,5 +53,8 @@ class Experiment:
             self.orr_results = activities
 
     def __str__(self):
-        return 'This is a temporary string'
+        text = (f'{self.electrode}'
+                f'{self.orr_results}')
+
+        return text
 # ..
