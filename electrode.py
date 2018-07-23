@@ -42,9 +42,19 @@ class Area(object):
 
     def vars(self):
         return dict(vars(self))
-    # TODO: call
 
+    def __str__(self):
+        text = f'''
+Area:
+    geom: {self.geom} cm^2
+    CO:   {self.CO} cm^2
+    CO-H: {self.H} cm^2
+    CV-H: {self.CV} cm^2
+'''
+        return text
 
+    def __format__(self, format_spec):
+        return f'{str(self):{format_spec}}'
 # ..
 
 
@@ -72,7 +82,13 @@ class Catalyst(object):
                             support_mass=sample_support_mass)
         return catalyst
 
+    def __str__(self):
+        text = (f'Catalyst mass: {self.mass:.5E} g\n'
+                f'{self.active_center}\n')
+        return text
 
+    def __format__(self, format_spec):
+        return f'{str(self):{format_spec}}'
 # ..
 
 
@@ -84,6 +100,13 @@ class ActiveCenter(object):
             # TODO: implement log
             print('Warning: using an active center percentage of 100%')
         self.percentage = percentage
+
+    def __str__(self):
+        name = self.name if self.name else 'Active center'
+        return f'{name:13}  {self.mass} g'
+
+    def __format__(self, format_spec):
+        return f'{str(self):{format_spec}}'
 # ..
 
 
@@ -93,7 +116,8 @@ class Support(object):
         self.mass = mass
         self.percentage = percentage
 
-
+    def __format__(self, format_spec):
+        return f'{str(self):{format_spec}}'
 # ..
 
 
@@ -104,7 +128,8 @@ class Solvent(object):
             raise ValueError(f'volume: got {type(volume)} expected <Real>')
         self.volume = volume
 
-
+    def __format__(self, format_spec):
+        return f'{str(self):{format_spec}}'
 # ..
 
 
@@ -157,78 +182,7 @@ class Electrode(object):
         # default activities
         # TODO: create class for catalytic activities
 
-        # self.ECSA = None
-        # self.acts = {key: {mode: {potential: None
-        #                           for potential in [0.9, 0.85, 0.8]}
-        #                    for mode in ["area", "mass"]}
-        #              for key in ["low", "high"]}
-        # self.acts['tafel'] = {'low': None, 'high': None}
-        # self.B = None
-        # # TODO: calculate or ask density
-        # self.dens = 21.45 if self.catCen == "Pt" else None  # Pt [g/cm3]
-
-#     def _calcParticleSize(self):
-#         # TODO: add more geometries
-#         # for cuboctahedron
-#         self.partSize = 6 * self.mCatCen / (self.dens * self.area.big()) if self.dens else None
-#
-#     def setKL(self, B):
-#         self.B = B
-#
-#     def setECSA(self, area='CO'):
-#         # chkUnits
-#         if area == 'CO' and self.area.CO:
-#             area = self.area.CO
-#         else:  # elif 'max':
-#             area = self.area.big()
-#         self.ECSA = 100. * area / self.catLoad / self.area.geom
-#
-#     def setActs(self, acts):
-#         self.acts = acts
-#
-#     def getRug(self, key=None):
-#         if key:
-#             return self.area[key] / self.area.geom
-#         for key in self.area:
-#             print((key, "/ geom =", self.area[key] / self.area.geom))
-#
-#     def analyze(self):
-#         Analysis()
-#         return
-#
-#     def __str__(self):
-#         blah = (
-#             """
-#             Area:
-#                 geom: {0} cm^2
-#                 CO:   {1} cm^2
-#                 CO-H: {2} cm^2
-#                 CV-H: {3} cm^2
-#             Deposited ink:
-#                 Volume:        {4} uL
-#                 Catalyst mass: {5} ug
-#                 {6} mass:        {7} ug
-#                 {6} loading: {8} ug/cm^2
-#             acts@0.9V:
-#                 {9} A/mgPt
-#                 {10} A/cm^2
-#                 {11} V/dec[i]    {14} V/dec[i]
-#             KL: B = {12}
-#             Electrochemical Active Area: {13} cm^2/ug{6}
-#             """)
-#         try:
-#             return blah.format(self.area.geom, self.area.CO, self.area.H,
-#                                self.area.CV, self.vInk, self.mCat, self.catCen, self.mCatCen,
-#                                self.catLoad, self.acts['low']['mass'][0.9],
-#                                self.acts['low']['area'][0.9], self.acts['tafel']['low'],
-#                                self.B, self.ECSA, self.acts['tafel']['high'])
-#         except TypeError as e:
-#             print('Electrode print error.')
-#             return str(e)
-#         except ValueError as e:
-#             print([self.area.geom, self.area.CO, self.area.CV, self.area.H,
-#                    self.vInk, self.mCat, self.catCen, self.mCatCen, self.catLoad,
-#                    self.acts['low']['mass'][0.9], self.acts['low']['area'][0.9],
-#                    self.acts['tafel'], self.B, self.ECSA])
-#             return str(e)
-# # ..
+    def __str__(self):
+        text = (f'{self.area}'
+                f'{self.catalyst}')
+        return text
