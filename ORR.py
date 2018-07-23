@@ -1,20 +1,50 @@
 import matplotlib.pyplot as plt
 from numpy import average, diff, log10, column_stack, zeros, empty
 from pylab import polyfit, poly1d
+from config import DictWithAttrs
 
 from arraytoexcel import toClipboardForExcel
 
 
+class OrrResult:
+    def __init__(self, activity_low=None, activity_high=None, B=None):
+        self.activity_low = activity_low
+        self.activity_high = activity_high
+        self.B = B
+
+    def __str__(self):
+        text = (f'{self.activity_low}\n'
+                f'B = {self.B:.4E} [units]')
+        return text
+
+    def __format__(self, format_spec):
+        return f'{str(self):{format_spec}}'
+
+
 class Activities:
-    def __init__(self):
-        self.mass = None
-        self.area = None
+    activity_format = '.4f'
+    def __init__(self, mass_act=None, area_act=None, tafel_slope=None):
+        self.mass = mass_act
+        self.area = area_act
+        self.tafel_slope = tafel_slope
 
     def set_mass_activity(self, activity):
         self.mass = activity
 
     def set_area_activity(self, activity):
         self.area = activity
+
+    def __str__(self):
+
+        text = f'''
+tafel slope:       {self.tafel_slope:{self.activity_format}} [units]
+mass activity:     {self.mass:{self.activity_format}} [units]
+specific activity: {self.area:{self.activity_format}} [units]
+        '''
+        return text
+
+    def __format__(self, format_spec):
+        return f'{str(self):{format_spec}}'
 
 
 def unzipos(cycle, verb=False):
@@ -137,24 +167,27 @@ def tafel(cycle, base=None, limit_current_range=(1.5, 20), sweep_rate=20, cataly
     highfit = polyfit(potential[highRang], highJk, 1)
     highFit = poly1d(highfit)
 
+    factor_area = 1
+    factor_mass = 1
     if area is not None:
-        factor_area = 1 / area
+        factor_area /= area
     if catalyst_mass is not None:
-        factor_mass = 1e3 / catalyst_mass
+        factor_mass /= 1e-3 * catalyst_mass
     # get acts
-    low_current = 10 ** lowFit(potential)
-    high_current = 10 ** highFit(potential)
-
-
-    acts = {key: {mode: {potential: factor * 10 ** fit(potential)
-                         for potential in [0.9, 0.85, 0.8]}
-                  for mode, factor in [("area", 1), ("mass", conv)]}
-            for key, fit in [("low", lowFit), ("high", highFit)]}
+    low_current = 10 ** lowFit(activity_potential)
+    high_current = 10 ** highFit(activity_potential)
     # TODO: report slopes
-    # print lowfit
-    acts['tafel'] = {}
-    acts['tafel']['low'] = 1 / lowfit[0]
-    acts['tafel']['high'] = 1 / highfit[0]
+    tafel_slope_low = 1 / lowfit[0]
+    tafel_slope_high = 1 / highfit[0]
+
+    act_low = Activities(mass_act=low_current*factor_mass,
+                          area_act=low_current*factor_area,
+                          tafel_slope=tafel_slope_low)
+
+    act_high = Activities(mass_act=high_current*factor_mass,
+                          area_act=high_current*factor_area,
+                          tafel_slope=tafel_slope_high)
+
     # copy to excel
     if copy:
         toClipboardForExcel(column_stack((potential, logJk)))
@@ -177,21 +210,20 @@ def tafel(cycle, base=None, limit_current_range=(1.5, 20), sweep_rate=20, cataly
         plt.ylabel('log Jk (A/cm$^2_{Pt}$)')
         plt.title("Tafel")
         # plt.show()
-    return acts
+    return act_low, act_high
 
 
-def KL(cycles, WE, graph=True, copy=False):  # rpm, cycle, WE, graph=True):
+def KL(cycles, graph=True, copy=False):
     # TODO: subtract base
     x, y = [], []
     for rpm, cycle in list(cycles.items()):
         # same as in Tafel
-        potential = cycle[:, 0]
-        current = cycle[:, 1]
+        potential, current = cycle
         rang = (potential > 0.2)[1:] & (diff(potential) >= 0)
         potential = potential[1:][rang]
         current = current[1:][rang]
         # current density
-        current = current / WE.area.geom
+        # current = current / WE.area.geom
         # JL
         JLrang = (potential > 0.2) & (potential < 0.4)
         JL = average(current[JLrang])
@@ -255,7 +287,10 @@ def plot(cycles, graph=True, base=None, copy=False, verb=False):
 
 
 def run(orr_data, exe='', graph=False, rpm='1600', verb=False, **params):
+    results = OrrResult()
+
     cycles = dict()
+    baseline = None
     for name, data in orr_data.items():
         linear_sweep = unzipos(data.get_scan(-1))
         if name == 'background':
@@ -268,17 +303,19 @@ def run(orr_data, exe='', graph=False, rpm='1600', verb=False, **params):
         plot(cycles, graph=graph, copy=params['copy'], verb=verb, base=baseline)
         verb and print('  fin plottting')
     if 'tafel' in exe:
-        cycle = cycles[rpm]
+        cycle = cycles[str(rpm)]
         verb and print('  init tafel')
-        acts = tafel(cycle, graph=graph, verb=verb, **params)
+        act_low, act_high = tafel(cycle, base=baseline,
+                                  graph=graph, verb=verb, **params)
         verb and print('  fin tafel')
-        WE.setActs(acts)
+        results.activity_low = act_low
+        results.activity_high = act_high
     if 'KL' in exe:
         verb and print('  init KL')
-        # B = KL(data, WE, graph=graph, copy=params['copy'])
+        B = KL(cycles, graph=graph, copy=params['copy'])
         verb and print('  fin KL')
+        results.B = B
         # WE.setKL(B)
-    if graph:
-        pass
-        # plt.show()
-    return True
+    # if graph:
+    #     plt.show()
+    return results
