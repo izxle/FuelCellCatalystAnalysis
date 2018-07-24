@@ -4,10 +4,11 @@ from typing import Iterable
 
 import matplotlib.pyplot as plt
 import numpy as np
+from pandas import read_excel
 
 
-def extract_data(res_data, headers=None):
-    raw_data = np.copy(res_data)
+def extract_data(raw_data, headers=None):
+    # raw_data = np.copy(res_data)
     if headers is None:
         # default headers
         headers = ['potential', 'current', 'time']
@@ -17,7 +18,7 @@ def extract_data(res_data, headers=None):
     else:
         # get index of first potential/current in headers
         potential_index = next(i for i, h in enumerate(headers)
-                               if 'potential' in h)
+                               if 'potential' in h and 'applied' not in h)
         current_index = next(i for i, h in enumerate(headers)
                              if 'current' in h)
         time_index = next(i for i, h in enumerate(headers)
@@ -25,14 +26,14 @@ def extract_data(res_data, headers=None):
 
     # get data
     res_data = dict()
-    res_data['potential'] = raw_data[:, potential_index]
-    res_data['current'] = raw_data[:, current_index]
-    res_data['time'] = raw_data[:, time_index]
+    res_data['potential'] = np.array(raw_data[:, potential_index], dtype=float)
+    res_data['current'] = np.array(raw_data[:, current_index], dtype=float)
+    res_data['time'] = np.array(raw_data[:, time_index], dtype=float)
 
     # check if scan info in headers
     if any('scan' in h for h in headers):
         scan_index = headers.index('scan')
-        res_data['scan'] = raw_data[:, scan_index]
+        res_data['scan'] = np.array(raw_data[:, scan_index], dtype=float)
     # calculate scan otherwise
     else:
         round_precision = 3
@@ -134,6 +135,15 @@ def read_file(filename: str, delimiter: str = ';', log_level: int = 0, **kwargs)
     return data
 
 
+def read_xls(filename):
+    name = path.basename(filename)
+    df = read_excel(filename)
+    headers = list(map(str.lower, df.columns))
+    raw_data = df.values
+    data = Data(name=name, raw_data=raw_data, headers=headers)
+    return data
+
+
 def read_directory(directory: str = '.', filenames: Iterable[str] = None, extension: str = '.txt',
                    delimiter: str = ';'):
     directory = path.abspath(path.expanduser(directory))
@@ -144,7 +154,11 @@ def read_directory(directory: str = '.', filenames: Iterable[str] = None, extens
     for filename in filenames:
         filepath = path.join(directory, filename)
         if path.isfile(filepath):
-            data[filename] = read_file(filepath, delimiter)
+            name, ext = path.splitext(filename)
+            if '.xls' in ext:
+                data[filename] = read_xls(filepath)
+            else:
+                data[filename] = read_file(filepath, delimiter)
 
     return data
 
