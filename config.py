@@ -124,6 +124,7 @@ def parse_config_values(config):
 
 
 def read_config(fname: str) -> Params:
+    # TODO: add default values
     config = ConfigParser(allow_no_value=True)
     assert path.isfile(fname), f'{fname} does not exist, must be an existing file'
 
