@@ -47,10 +47,10 @@ class Area(object):
     def __str__(self):
         text = f'''
 Area:
-    geom: {self.geom} cm^2
-    CO:   {self.CO} cm^2
-    CO-H: {self.H} cm^2
-    CV-H: {self.CV} cm^2
+    geom: {self.geom:{self._format}} cm^2
+    CO:   {self.CO:{self._format}} cm^2
+    CO-H: {self.H:{self._format}} cm^2
+    CV-H: {self.CV:{self._format}} cm^2
 '''
         return text
 
@@ -109,7 +109,7 @@ class ActiveCenter(object):
 
     def __str__(self):
         name = self.name if self.name else 'Active center'
-        return f'{name:13}  {self.mass} g'
+        return f'{name:13}  {self.mass:5.1f} ug'
 
     def __format__(self, format_spec):
         return f'{str(self):{format_spec}}'
@@ -189,6 +189,6 @@ class Electrode(object):
         # TODO: create class for catalytic activities
 
     def __str__(self):
-        text = (f'{self.area}'
+        text = (f'{self.area}\n'
                 f'{self.catalyst}')
         return text
