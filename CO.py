@@ -152,8 +152,8 @@ def run(data, sweep_rate=20.,
         exe='', graph=True, baseline=False, copy=False):
     # INIT data
     params = {}
-    ECSA_CO = None
-    ECSA_H = None
+    area_CO = None
+    area_H = None
 
     cycle_CO = data.get_scan(1)
     cycle_baseline = data.get_scan(2)
@@ -162,16 +162,20 @@ def run(data, sweep_rate=20.,
     if "CO" in exe:
         params["CO"] = CO(cycle_CO, cycle_baseline, c_range, co_range, add_baseline=baseline, copy=copy)
         x, y = params["CO"][0]
-        ECSA_CO = np.trapz(y, x) / (210.e-6 * sweep_rate * 1.e-3)  # cm2
+        Q_CO = np.trapz(y, x)  # V C / s
+        factor_CO = 420e-6 * sweep_rate * 1.e-3  # C V / s cm2
+        area_CO = Q_CO / factor_CO  # cm2
     if "H" in exe:
         params["H"] = H(cycle_CO, cycle_baseline, co_range[0], copy)
         x, y = params["H"]
-        ECSA_H = np.trapz(y, x) / (420.e-6 * sweep_rate * 1.e-3)  # cm2
+        Q_H = np.trapz(y, x)  # V C / s
+        factor_H = 210e-6 * sweep_rate * 1.e-3  # C V / s cm2
+        area_H = Q_H / factor_H  # cm2
     if graph:
         plot(cycle_CO, cycle_baseline, paramsCO=params.get("CO"),
              paramsH=params.get("H"), exe=exe, graph=graph)
 
-    return ECSA_CO, ECSA_H
+    return area_CO, area_H
 
 
 if __name__ == "__main__":
