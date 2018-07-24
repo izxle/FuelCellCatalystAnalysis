@@ -5,6 +5,7 @@ from numpy import pi
 
 class Area(object):
     # TODO: maybe inherit d dict
+    _format = '6.3f'
     def __init__(self, geom=None, CO=None, H=None, CV=None):
         self.geom = geom
         self.CO = CO
@@ -82,9 +83,14 @@ class Catalyst(object):
                             support_mass=sample_support_mass)
         return catalyst
 
+    def set_ecsa(self, area_real):
+        # m^2 / g
+        self.ecsa = area_real * 1e2 / self.active_center.mass
+
     def __str__(self):
-        text = (f'Catalyst mass: {self.mass:.5E} g\n'
-                f'{self.active_center}\n')
+        text = (f'{self.name:14} {self.mass:5.1f} ug\n'
+                f'{self.active_center}\n'
+                f'ECSA = {self.ecsa:7.3f} m^2 / g_{self.active_center.name}')
         return text
 
     def __format__(self, format_spec):
