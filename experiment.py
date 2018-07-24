@@ -24,15 +24,18 @@ class Experiment:
             cv_params.data = cv_data
             area_H_CV = CV.run(**cv_params)
             self.electrode.area.CV = area_H_CV
+            self.electrode.catalyst.set_ecsa(area_H_CV)
 
         # CO
         co_params = self.analysis_params.co
         co_data = self.data.get(co_params.data, False)
         if co_params.exe and co_data:
             co_params.data = co_data
-            area_H_CO, area_CO = CO.run(**co_params)
+            area_CO, area_H_CO = CO.run(**co_params)
             self.electrode.area.H = area_H_CO
             self.electrode.area.CO = area_CO
+            self.electrode.catalyst.set_ecsa(area_CO)
+
 
         # ORR
         orr_params = self.analysis_params.orr
@@ -44,9 +47,10 @@ class Experiment:
                 orr_data[name] = i_data
         if orr_params.exe and orr_data:
             orr_params.catalyst_mass = self.electrode.catalyst.active_center.mass
-            orr_params.area = self.electrode.area.big()
+            orr_params.area_geometric = self.electrode.area.geom
+            orr_params.area_real = self.electrode.area.big()
             if self.electrode.area.CO:
-                orr_params.area = self.electrode.area.CO
+                orr_params.area_real = self.electrode.area.CO
             del orr_params['data']
             orr_params.orr_data = orr_data
             activities = ORR.run(**orr_params)
