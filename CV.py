@@ -4,68 +4,82 @@ import numpy as np
 from arraytoexcel import toClipboardForExcel
 
 
-def H(cycle, C_lower=0.4, C_upper=0.6):
+def H(cycle, c_range=(0.4, 0.6)):
+    c_lower, c_upper = c_range
     # unzip data
-    potential = cycle[:,0]
-    current = cycle[:,1]
+    potential, current = cycle
     # cut for anodic sweep
     #TODO: auto calc treshold
     rangPos = np.diff(potential) >= 0
     potential = potential[1:][rangPos]
     current = current[1:][rangPos]
     # cut for baseline
-    rangC = (potential > C_lower) & (potential < C_upper)
+    rangC = (potential > c_lower) & (potential < c_upper)
     m, b = np.polyfit(potential[rangC], current[rangC], 1)
     # cut for H-ads
-    rangH = (potential < C_lower) & (current > 0.0)    
+    rangH = (potential < c_lower) & (current > 0.0)
     xH = potential[rangH]
     yH = current[rangH]
     # substract baseline
     baseline = m * xH + b
     yH -= baseline
-    #TODO: add H-desorption area
+    # TODO: add H-desorption area
     # return xyH, baseline
     return xH, yH, baseline
 
-def plot(cycle, xH, yH, y_base, first=None, graph=True, exe=True):
+
+def plot(cycle_CV, cycle_H, y_base, first=None, graph=True, exe: str = ''):
+    potential, current = cycle_CV
+
     plt.figure('CV')
-    plt.title("CV")
-    plt.plot(*list(zip(*cycle)), label="last")
-    if (not first is None) and (not first is False):
-        plt.plot(*list(zip(*cycle)), label="first")
-    plt.legend(title="Cycle", loc=0)
+    plt.title('CV')
+    plt.xlabel('Potential (V)')
+    plt.ylabel('Current (A)')
+
+    plt.plot(potential, current, label="Last")
+
+    if (first is not None) and (first is not False):
+        potential_first, current_first = first
+        plt.plot(potential_first, current_first, label='First')
+        plt.legend(title="Cycle", loc=0)
     if "H" in exe:
-        plt.plot(xH, y_base, label="H-ads base line")    
+        xH, yH = cycle_H
+        plt.plot(xH, y_base, label="H-ads base line")
         if graph > 1:
-            plt.figure('CV - $H_{ads} peak$')
+            plt.figure('CV - H_ads peak')
             plt.plot(xH, yH)
-            plt.title("CV-H")
-            plt.xlabel('Potencial (V)')
-            plt.ylabel('Corriente (A)')
+            plt.title("CV-$H_{ads}$")
+            plt.xlabel('Potential (V)')
+            plt.ylabel('Current (A)')
     # plt.show()
-    
+
+
 def copy2excel(cycle, first=False):
     toClipboardForExcel(cycle)
-    eval(input("copy last cycle CV..."))
+    input("copy last cycle CV...")
     print('... done')
-    if (not first is None) and (not first is False):
+    if (first is not None) and (first is not False):
         toClipboardForExcel(first)
-        eval(input("copy first cycle CV..."))
+        input("copy first cycle CV...")
         print('... done')
 
-def run(cycle, sr=50.0, C_lower=0.4, C_upper=0.6, first=None,
-        exe=True, graph=False, copy=False):
-    #INIT data
+
+def run(data, sweep_rate=50.0, c_range=(0.4, 0.6), first=None,
+        exe='', graph=False, copy=False):
+    # INIT data
     xH_pos = None
     yH_pos = None
     y_base = None
     ECSA = None
-    #RUN stuff
+    cycle = data.get_scan(-1)
+    if first:
+        first = data.get_scan(1)
+    # RUN stuff
     if copy:
         copy2excel(cycle, first)
     if "H" in exe:
-        xH_pos, yH_pos, y_base = H(cycle, C_lower, C_upper)
-        ECSA = np.trapz(yH_pos, xH_pos)/(195.e-6*sr*1.e-3) #cm2
+        xH_pos, yH_pos, y_base = H(cycle, c_range)
+        ECSA = np.trapz(yH_pos, xH_pos) / (195.e-6 * sweep_rate * 1.e-3)  # cm2
     if graph:
-        plot(cycle, xH_pos, yH_pos, y_base, first, graph, exe)
+        plot(cycle, (xH_pos, yH_pos), y_base, first, graph, exe)
     return ECSA

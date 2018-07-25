@@ -49,6 +49,18 @@ class Folder(object):
 
         try:
             self.verb and print("Loading", path.basename(filepath), end=' ')
+            if self.autolab:
+                with open(filepath, 'r') as f:
+                    headers = f.readline()[:-1].split(self.delimiter)
+                # TODO: use list of unused columns
+                if 'Current range' in headers:
+                    # indices = list(range(len(headers)))
+                    # indices.remove(headers.index('Current range'))
+                    # kw['usecols'] = indices
+
+                    index = headers.index('Current range')
+                    kw['usecols'] = [i for i, header in enumerate(headers)
+                                     if header != 'Current range']
             data = np.loadtxt(filepath, **kw)
             self.verb and print("... done.")
         except Exception as e:
@@ -97,7 +109,7 @@ class Folder(object):
                         if (potential - last) > 0:
                             fwd = True
                         # if bkwrd y just past init, scan++
-                        elif potential <= init and last > init:
+                        elif potential <= init < last:
                             scan += 1
                     elif (potential - last) < 0:
                         fwd = False
@@ -120,8 +132,8 @@ class Folder(object):
             self.verb and print(filename[-17:-10], scan if self.autolab else scan - 1)
 
     def getCycle(self, filename, index=-1):
-        if index == -1:
-            index = len(self.files[filename]["cycles"])
+        if index < 0:
+            index += len(self.files[filename]["cycles"]) + 1
         return self.files[filename]["cycles"][index]
 
     def getCycles(self, filename, last=False):
