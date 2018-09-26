@@ -41,7 +41,7 @@ class Params(DictWithAttrs):
         self.ink = dict()
 # ..
 # TODO: create classes for each section
-
+# TODO: get sweep rate from data
 
 def parse_analysis_sections(cv=None, co=None, orr=None):
     cv_params = DictWithAttrs(exe=cv.run,
@@ -90,7 +90,9 @@ def parse_config_values(config):
     for sec in config.sections():
         params[sec] = DictWithAttrs()
         for name, value in config.items(sec):
-            if name == 'run':
+            if name == 'delimiter' and value == 'tab':
+                value = '\t'
+            elif name == 'run':
                 # TODO: make always list
                 value = re.split('\s*[, ]\s*', value)
             elif 'range' in name:

@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from arraytoexcel import toClipboardForExcel
+from fccalib.arraytoexcel import toClipboardForExcel
 
 
 # TODO: decorate plt.plot to allow xy arrays
@@ -124,6 +124,9 @@ def plot(cycle_CO, cycle_baseline, paramsCO, paramsH, exe, graph):
                 # baseline
                 # TODO: add baseline
                 plt.title("CO peak")
+                plt.xlabel('Potential [V$_{NHE}$]')
+                plt.ylabel('Current [A]')
+
         if "H" in exe:
             xyH = paramsH
             if graph > 2:
@@ -132,12 +135,16 @@ def plot(cycle_CO, cycle_baseline, paramsCO, paramsH, exe, graph):
                 x, y = xyH
                 plt.plot(x, y)
                 plt.title("CO stripping - normalized $H_{ads}$ peak")
+                plt.xlabel('Potential [V$_{NHE}$]')
+                plt.ylabel('Current [A]')
 
     potential_CO, current_CO = cycle_CO
     potential_baseline, current_baseline = cycle_baseline
     plt.figure('CV - CO stripping')
     plt.plot(potential_CO, current_CO, color='b', linestyle=':', label='First')
     plt.plot(potential_baseline, current_baseline, color='g', linestyle=':', label='Second')
+    plt.xlabel('Potential [V$_{NHE}$]')
+    plt.ylabel('Current [A]')
     plt.title("CO stripping")
     plt.legend(title='Cycle', loc=0)
     if graph > 1:

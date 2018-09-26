@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from arraytoexcel import toClipboardForExcel
+from fccalib.arraytoexcel import toClipboardForExcel
 
 
 def H(cycle, c_range=(0.4, 0.6)):
@@ -33,11 +33,12 @@ def plot(cycle_CV, cycle_H, y_base, first=None, graph=True, exe: str = ''):
 
     plt.figure('CV')
     plt.title('CV')
-    plt.xlabel('Potential (V)')
-    plt.ylabel('Current (A)')
+    plt.xlabel('Potential [V$_{NHE}$]')
+    plt.ylabel('Current [A]')
 
     plt.plot(potential, current, label="Last")
 
+    # TODO: change units for clarity
     if (first is not None) and (first is not False):
         potential_first, current_first = first
         plt.plot(potential_first, current_first, label='First')
@@ -49,8 +50,8 @@ def plot(cycle_CV, cycle_H, y_base, first=None, graph=True, exe: str = ''):
             plt.figure('CV - H_ads peak')
             plt.plot(xH, yH)
             plt.title("CV-$H_{ads}$")
-            plt.xlabel('Potential (V)')
-            plt.ylabel('Current (A)')
+            plt.xlabel('Potential [V$_{NHE}$]')
+            plt.ylabel('Current [A]')
     # plt.show()
 
 

@@ -1,9 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from pylab import polyfit, poly1d
-from config import DictWithAttrs
 
-from arraytoexcel import toClipboardForExcel
+from fccalib.arraytoexcel import toClipboardForExcel
 
 
 class OrrResult:
@@ -47,45 +46,45 @@ specific activity: {self.area*1e6:{self._activity_format}} uA / cm^2
         return f'{str(self):{format_spec}}'
 
 
-def unzipos(cycle, verb=False):
-    # x, y = hsplit(cycle, 2)
-    x, y = cycle
-
-    if verb > 2: print('     init unzip', len(x))
-    rang = np.diff(x) > 0
-    if verb > 2: print('     positives:', rang.sum())
-    x = x[1:][rang]
-    y = y[1:][rang]
-
-    if len(x) == 0: raise Exception('Error in splitting. ORR.')
-    if verb > 2: print('     diff', len(x))
-
-    rang = np.zeros(len(x), dtype=bool)
-    prev_E = -float('inf')
-
-    for ix, E in enumerate(x):
-        if E < prev_E:
-            break
-        rang[ix] = True
-        prev_E = E
-
-    if rang.sum() == 1:
-        rang[0] = False
-        prev_E = x[ix]
-
-        for ix, E in enumerate(x[ix + 1:], ix + 1):
-            if E < prev_E:
-                break
-            rang[ix] = True
-            prev_E = E
-
-    x = x[rang]
-    y = y[rang]
-
-    if verb > 2: print('     fin unzip', len(x))
-
-    return x, y
-
+# def unzipos(cycle, verb=False):
+#     # x, y = hsplit(cycle, 2)
+#     x, y = cycle
+#
+#     if verb > 2: print('     init unzip', len(x))
+#     rang = np.diff(x) > 0
+#     if verb > 2: print('     positives:', rang.sum())
+#     x = x[1:][rang]
+#     y = y[1:][rang]
+#
+#     if len(x) == 0: raise Exception('Error in splitting. ORR.')
+#     if verb > 2: print('     diff', len(x))
+#
+#     rang = np.zeros(len(x), dtype=bool)
+#     prev_E = -float('inf')
+#
+#     for ix, E in enumerate(x):
+#         if E < prev_E:
+#             break
+#         rang[ix] = True
+#         prev_E = E
+#
+#     if rang.sum() == 1:
+#         rang[0] = False
+#         prev_E = x[ix]
+#
+#         for ix, E in enumerate(x[ix + 1:], ix + 1):
+#             if E < prev_E:
+#                 break
+#             rang[ix] = True
+#             prev_E = E
+#
+#     x = x[rang]
+#     y = y[rang]
+#
+#     if verb > 2: print('     fin unzip', len(x))
+#
+#     return x, y
+#
 
 def tafel(cycle, base=None, limit_current_range=(0.15, 0.20), catalyst_mass=None, area_real=None,
           activity_potential=0.9, shift=1.5, rpm=1600, report='area mass', sweep_rate=20,
@@ -203,10 +202,10 @@ def tafel(cycle, base=None, limit_current_range=(0.15, 0.20), catalyst_mass=None
         plt.figure('ORR - Tafel')
         plt.plot(potential, logJk, ":")
         plt.plot(potential[lowRang], lowFit(potential[lowRang]))
-        plt.plot(potential[highRang], highFit(potential[highRang]))
+        # plt.plot(potential[highRang], highFit(potential[highRang]))
         # plt.plot(highJk, potential[highRang])
-        plt.xlabel('Potencial (V)')
-        plt.ylabel('log Jk (A/cm$^2_{Pt}$)')
+        plt.xlabel('Potential [V$_{NHE}$]')
+        plt.ylabel('log J$_k$ [A/cm$^2_{Pt,Pd}$]')
         plt.title("Tafel")
         # plt.show()
     return act_low, act_high
@@ -252,8 +251,8 @@ def KL(cycles, area, base=None, limit_current_range=(0.2, 0.4),
         plt.figure('ORR - Koutecký-Levich')
         plt.plot(x, [m * i + b for i in x])
         plt.scatter(x, y)
-        plt.xlabel('RPM$^{-0.5}$ (s$^{-0.5}$)')
-        plt.ylabel('JL (cm$^2$ / A)')
+        plt.xlabel('RPM$^{-0.5}$ [s$^{-0.5}$]')
+        plt.ylabel('1/J$_L$ [cm$^2$/A]')
         plt.title("Koutecký-Levich")
         # plt.show()
     return 1 / m
@@ -286,13 +285,13 @@ def plot(cycles, graph=True, base=None, copy=False, verb=False):
         plt.figure('ORR - Raw data')
         plt.title('ORR - Linear Voltammogram - Raw positive sweeps')
         plt.legend(title='RPM', loc=0)
-        plt.xlabel('Potential (V)')
-        plt.ylabel('Current (A)')
+        plt.xlabel('Potential [V$_{NHE}$]')
+        plt.ylabel('Current [A]')
 
         plt.figure('ORR - Corrected data')
         plt.title('ORR - Voltammogram - Positive sweeps')
-        plt.xlabel('Potential (V)')
-        plt.ylabel('Current (A)')
+        plt.xlabel('Potential [V$_{NHE}$]')
+        plt.ylabel('Current [A]')
         if yB is not None:
             plt.plot(xB, yB, 'g:', label='Baseline')
         plt.legend(title='RPM', loc=0)
@@ -304,7 +303,7 @@ def run(orr_data, exe='', graph=False, rpm='1600', verb=False, **params):
     cycles = dict()
     baseline = None
     for name, data in orr_data.items():
-        linear_sweep = unzipos(data.get_scan(-1))
+        linear_sweep = data.get_linear_sweep(-1)
         if name == 'background':
             baseline = linear_sweep
         else:

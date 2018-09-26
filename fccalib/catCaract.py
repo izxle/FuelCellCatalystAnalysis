@@ -1,10 +1,8 @@
 from re import search
 
-import CO
-import CV
-import ORR
+from fccalib import ORR, CV, CO
 from electrode_old import *
-from getdata import *
+from fccalib.getdata import *
 
 
 # TODO: add verbosity to CV, CO, electrode, getdata

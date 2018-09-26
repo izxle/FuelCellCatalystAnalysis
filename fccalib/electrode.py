@@ -45,12 +45,15 @@ class Area(object):
         return dict(vars(self))
 
     def __str__(self):
+        txt_CO = f'{self.CO:{self._format}} cm^2' if self.CO is not None else '  None'
+        txt_H = f'{self.H:{self._format}} cm^2' if self.H is not None else '  None'
+        txt_CV = f'{self.CV:{self._format}} cm^2' if self.CV is not None else '  None'
         text = f'''
 Area:
     geom: {self.geom:{self._format}} cm^2
-    CO:   {self.CO:{self._format}} cm^2
-    CO-H: {self.H:{self._format}} cm^2
-    CV-H: {self.CV:{self._format}} cm^2
+    CO:   {txt_CO}
+    CO-H: {txt_H}
+    CV-H: {txt_CV}
 '''
         return text
 
@@ -63,6 +66,7 @@ class Catalyst(object):
     def __init__(self, name: str, mass: Real,
                  active_center_name: str, active_center_percentage: Real,
                  support_name: str = '', support_mass: Real = None):
+        self.ecsa = None
         self.name = name
         self.mass = mass
 
@@ -87,10 +91,18 @@ class Catalyst(object):
         # m^2 / g
         self.ecsa = area_real * 1e2 / self.active_center.mass
 
+    @property
+    def ecsa_str(self):
+        if self.ecsa is not None:
+            txt = f'{self.ecsa:7.3f} m^2 / g_{self.active_center.name}'
+        else:
+            txt = 'None'
+        return txt
+
     def __str__(self):
         text = (f'{self.name:14} {self.mass:5.1f} ug\n'
                 f'{self.active_center}\n'
-                f'ECSA = {self.ecsa:7.3f} m^2 / g_{self.active_center.name}')
+                f'ECSA = {self.ecsa_str}')
         return text
 
     def __format__(self, format_spec):

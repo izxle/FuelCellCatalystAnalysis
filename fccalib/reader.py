@@ -17,8 +17,13 @@ def extract_data(raw_data, headers=None):
         time_index = 2
     else:
         # get index of first potential/current in headers
-        potential_index = next(i for i, h in enumerate(headers)
-                               if 'potential' in h and 'applied' not in h)
+        try:
+            potential_index = next(i for i, h in enumerate(headers)
+                                   if 'potential' in h and 'applied' not in h)
+        except StopIteration:
+            potential_index = next(i for i, h in enumerate(headers)
+                                   if 'potential' in h)
+
         current_index = next(i for i, h in enumerate(headers)
                              if 'current' in h)
         time_index = next(i for i, h in enumerate(headers)
@@ -95,6 +100,30 @@ class Data(object):
         cycle = np.vstack((potential, current))
         return cycle
 
+    def get_linear_sweep(self, i: int, direction:int = 1):
+        cycle = self.get_scan(i)
+        x, y = cycle
+
+        if direction == 1:
+            diff = np.diff(x) > 0
+        elif direction == -1:
+            diff = np.diff(x) < 0
+        else:
+            raise ValueError('argument `direction` must be 1 or -1')
+
+        first_value = diff[0]
+        mask_diff = [first_value] + list(diff)
+        x = x[mask_diff]
+        y = y[mask_diff]
+
+        if len(x) == 0: raise ValueError('Error in splitting cycle.')
+
+        sorted_indices = x.argsort()
+        x = x[sorted_indices]
+        y = y[sorted_indices]
+
+        return x, y
+
     def set_time(self, array):
         self.time = array
 
@@ -115,7 +144,7 @@ class Data(object):
         return self.current[item]
 
 
-def read_file(filename: str, delimiter: str = ';', log_level: int = 0, **kwargs):
+def read_file(filename: str, delimiter: str = ';', log_level: int = 0, name=None, **kwargs):
     # set log level
     # if log_level:
     #     log.setLevel(log_level)
@@ -128,7 +157,9 @@ def read_file(filename: str, delimiter: str = ';', log_level: int = 0, **kwargs)
 
     headers = list(map(str.strip, first_line.split(delimiter)))
 
-    name = path.basename(filename)
+    if name is None:
+        name = path.basename(filename)
+
     raw_data = np.genfromtxt(filename, skip_header=1, delimiter=delimiter)
     data = Data(name=name, raw_data=raw_data, headers=headers)
 
@@ -155,7 +186,7 @@ def read_directory(directory: str = '.', filenames: Iterable[str] = None, extens
         filepath = path.join(directory, filename)
         if path.isfile(filepath):
             name, ext = path.splitext(filename)
-            if '.xls' in ext:
+            if ext == '.xlsx':
                 data[filename] = read_xls(filepath)
             else:
                 data[filename] = read_file(filepath, delimiter)
@@ -164,7 +195,7 @@ def read_directory(directory: str = '.', filenames: Iterable[str] = None, extens
 
 
 if __name__ == '__main__':
-    from visualize import view
+    from fccalib.visualize import view
 
     data = read_file(r"C:\Users\PARSTAT 2273\Dropbox\Nuwb\Echem\PtBi\180215\4ta-PtBi-H\CO_7.txt", delimiter='\t')
     view(data, 'time', 'current')

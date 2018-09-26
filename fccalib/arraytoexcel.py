@@ -1,4 +1,7 @@
 import win32clipboard as clipboard
+from .electrode import Electrode
+import xlsxwriter
+
 
 def toClipboardForExcel(array):
     """
@@ -15,3 +18,7 @@ def toClipboardForExcel(array):
     clipboard.EmptyClipboard()
     clipboard.SetClipboardText(array_string)
     clipboard.CloseClipboard()
+
+
+def save_to_excel(electrode: Electrode):
+    return

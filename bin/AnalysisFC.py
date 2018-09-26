@@ -3,10 +3,10 @@ from argparse import ArgumentParser
 
 import matplotlib.pyplot as plt
 
-from config import read_config
-from electrode import Electrode, Ink, Catalyst, Solvent
-from experiment import Experiment
-from reader import read_directory
+from fccalib.config import read_config
+from fccalib.electrode import Electrode, Ink, Catalyst, Solvent
+from fccalib.experiment import Experiment
+from fccalib.reader import read_directory
 
 
 def get_args(argv=''):
@@ -63,11 +63,12 @@ def run(argv=''):
     experiment = Experiment(data=data,
                             electrode=electrode,
                             analysis_params=config.analysis)
-
+    plt.show()
     return experiment
 
 
 if __name__ == '__main__':
-    res = run()
+    res = run([r'..\examples\Pt\config.ini'])
     print(res)
     plt.show()
+    print()
