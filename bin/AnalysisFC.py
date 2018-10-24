@@ -6,13 +6,16 @@ import matplotlib.pyplot as plt
 from fccalib.config import read_config, DictWithAttrs
 from fccalib.electrode import Electrode, Ink, Catalyst, Solvent
 from fccalib.experiment import Experiment
-from fccalib.reader import read_directory
+from fccalib.reader import read_directory, read_result
+from fccalib.writter import save_object
 
 
 def get_args(argv=''):
     parser = ArgumentParser()
     # argument definition
     parser.add_argument('configfile', nargs='?', default='config.ini')
+    parser.add_argument('-r', '--read', action='store_true',
+                        help='read result.pkl and ignore config.ini')
     # read arguments
     if argv:
         if isinstance(argv, str):
@@ -55,15 +58,20 @@ def get_data(config: DictWithAttrs):
 def run(argv=None):
     args = get_args(argv)
 
-    config = read_config(args.configfile)
+    if args.read:
+        experiment = read_result()
+    else:
+        config = read_config(args.configfile)
 
-    electrode = get_electrode(config)
-    data = get_data(config)
+        electrode = get_electrode(config)
+        data = get_data(config)
 
-    experiment = Experiment(data=data,
-                            electrode=electrode,
-                            analysis_params=config.analysis)
-    plt.show()
+
+        experiment = Experiment(data=data,
+                                electrode=electrode,
+                                analysis_params=config.analysis)
+        plt.show()
+        save_object(experiment, 'result.pkl')
     return experiment
 
 

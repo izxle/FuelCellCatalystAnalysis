@@ -4,7 +4,8 @@ from typing import Iterable
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.stats import linregress
+
+import pickle
 from pandas import read_excel
 
 
@@ -209,6 +210,13 @@ def read_directory(directory: str = '.', filenames: Iterable[str] = None, extens
             data[fname] = read_file(filepath, delimiter)
 
     return data
+
+
+def read_result(filename='result.pkl'):
+    with open(filename, 'r') as f:
+        result = pickle.load(f)
+
+    return result
 
 
 if __name__ == '__main__':
