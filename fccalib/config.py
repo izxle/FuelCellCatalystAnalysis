@@ -3,6 +3,11 @@ from configparser import ConfigParser
 from os import path
 
 
+section_default = {
+    'data directory': '.'
+}
+
+
 class DictWithAttrs(dict):
     def __init__(self, *args, **kwargs):
         self.update(*args, **kwargs)
@@ -46,7 +51,7 @@ class Params(DictWithAttrs):
 def parse_analysis_sections(cv=None, co=None, orr=None):
     cv_params = DictWithAttrs(exe=cv.run,
                               data=cv.filename,
-                              sweep_rate=cv.sweep_rate,
+                              sweep_rate=cv.get('sweep_rate'),
                               c_range=cv.c_range,
                               first=cv.first,
                               graph=cv.graph,
@@ -54,7 +59,7 @@ def parse_analysis_sections(cv=None, co=None, orr=None):
 
     co_params = DictWithAttrs(exe=co.run,
                               data=co.filename,
-                              sweep_rate=co.sweep_rate,
+                              sweep_rate=co.get('sweep_rate'),
                               c_range=co.c_range,
                               co_range=co.co_range,
                               graph=co.graph,
@@ -62,15 +67,21 @@ def parse_analysis_sections(cv=None, co=None, orr=None):
 
     files_orr = dict()
     for filename in orr.filenames:
-        rpm = re.search('[0-9]{,2}00', filename).group()
-        files_orr[rpm] = filename
+        match = re.search('\d?\d00', filename)
+        if match:
+            rpm = match.group()
+            files_orr[rpm] = filename
+        else:
+            # TODO: log warning
+            pass
+
     if orr.background:
         files_orr['background'] = orr.background
 
     orr_params = DictWithAttrs(exe=orr.run,
                                data=files_orr,
                                area=orr.area,
-                               sweep_rate=orr.sweep_rate,
+                               sweep_rate=orr.get('sweep_rate'),
                                limit_current_range=orr.limit_current_range,
                                rpm=orr.rpm,
                                report=orr.report,
@@ -84,16 +95,16 @@ def parse_analysis_sections(cv=None, co=None, orr=None):
     return analysis_params
 
 
-def parse_config_values(config):
+def parse_config_values(config: ConfigParser) -> Params:
     params = Params()
     filenames = list()
+    # iterate through the name of the sections
     for sec in config.sections():
         params[sec] = DictWithAttrs()
         for name, value in config.items(sec):
             if name == 'delimiter' and value == 'tab':
                 value = '\t'
             elif name == 'run':
-                # TODO: make always list
                 value = re.split('\s*[, ]\s*', value)
             elif 'range' in name:
                 value = re.split('\s*[, ]\s*', value)
@@ -115,6 +126,7 @@ def parse_config_values(config):
                 value = '\t'
             elif value.lower() in {'false', 'true', 'on', 'off', 'yes', 'no'}:
                 value = value.lower() in {'true', 'on', 'yes'}
+
             if value == ['']:
                 value = list()
             elif 'range' in name:
@@ -126,14 +138,15 @@ def parse_config_values(config):
 
 
 def read_config(fname: str) -> Params:
-    # TODO: add default values
+
     config = ConfigParser(allow_no_value=True)
     assert path.isfile(fname), f'{fname} does not exist, must be an existing file'
 
+    config['DEFAULT'] = section_default
     config.read(fname)
 
     # read directory path from GENERAL section
-    directory = config['GENERAL']['path']
+    directory = config['GENERAL'].get('data directory')
     # extract path to directory
     assert path.isdir(directory), f'{directory} must be an existing directory'
 

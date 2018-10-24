@@ -52,7 +52,7 @@ def get_data(config):
     return data
 
 
-def run(argv=''):
+def run(argv=None):
     args = get_args(argv)
 
     config = read_config(args.configfile)

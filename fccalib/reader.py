@@ -144,7 +144,7 @@ class Data(object):
         return self.current[item]
 
 
-def read_file(filename: str, delimiter: str = ';', log_level: int = 0, name=None, **kwargs):
+def read_txt(filename: str, delimiter: str = ';', log_level: int = 0, name=None, **kwargs):
     # set log level
     # if log_level:
     #     log.setLevel(log_level)
@@ -175,6 +175,15 @@ def read_xls(filename):
     return data
 
 
+def read_file(filename, delimiter: str=';'):
+    name, ext = path.splitext(filename)
+    if ext == '.xlsx':
+        data = read_xls(filename)
+    else:
+        data = read_txt(filename, delimiter)
+    return data
+
+
 def read_directory(directory: str = '.', filenames: Iterable[str] = None, extension: str = '.txt',
                    delimiter: str = ';'):
     directory = path.abspath(path.expanduser(directory))
@@ -182,14 +191,10 @@ def read_directory(directory: str = '.', filenames: Iterable[str] = None, extens
         filenames = glob(path.join(directory, '*' + extension))
 
     data = dict()
-    for filename in filenames:
-        filepath = path.join(directory, filename)
+    for fname in filenames:
+        filepath = path.join(directory, fname)
         if path.isfile(filepath):
-            name, ext = path.splitext(filename)
-            if ext == '.xlsx':
-                data[filename] = read_xls(filepath)
-            else:
-                data[filename] = read_file(filepath, delimiter)
+            data[fname] = read_file(filepath, delimiter)
 
     return data
 
@@ -197,7 +202,7 @@ def read_directory(directory: str = '.', filenames: Iterable[str] = None, extens
 if __name__ == '__main__':
     from fccalib.visualize import view
 
-    data = read_file(r"C:\Users\PARSTAT 2273\Dropbox\Nuwb\Echem\PtBi\180215\4ta-PtBi-H\CO_7.txt", delimiter='\t')
+    data = read_txt(r"C:\Users\PARSTAT 2273\Dropbox\Nuwb\Echem\PtBi\180215\4ta-PtBi-H\CO_7.txt", delimiter='\t')
     view(data, 'time', 'current')
     view(data, 'potential', 'current')
     plt.show()
