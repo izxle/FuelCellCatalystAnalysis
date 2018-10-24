@@ -4,6 +4,7 @@ from typing import Iterable
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.stats import linregress
 from pandas import read_excel
 
 
@@ -67,8 +68,16 @@ class Data(object):
         self.time = np.array([])
 
         data_dict = extract_data(raw_data, headers)
+
         for name, value in data_dict.items():
             self.set_property(name, value)
+
+        if self.time.any():
+            # sr = abs((self.potential[1] - self.potential[0]) / (self.time[1] - self.time[0]))
+            sr = (abs(np.diff(self.potential)) / np.diff(self.time)).mean()
+        else:
+            sr = None
+        self.sweep_rate = sr
 
     def set_potential(self, array):
         self.potential = array
@@ -142,6 +151,9 @@ class Data(object):
 
     def __getitem__(self, item):
         return self.current[item]
+
+    def __str__(self):
+        return f'Data: {self.name} \t{len(np.unique(self.scan))} cycles \t{len(self.scan)} points'
 
 
 def read_txt(filename: str, delimiter: str = ';', log_level: int = 0, name=None, **kwargs):

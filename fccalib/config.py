@@ -1,10 +1,12 @@
 import re
 from configparser import ConfigParser
-from os import path
+from os import path, chdir
 
 
 section_default = {
-    'data directory': '.'
+    'data directory': '.',
+    'ext': '',
+    'delimiter': ';'
 }
 
 
@@ -110,6 +112,7 @@ def parse_config_values(config: ConfigParser) -> Params:
                 value = re.split('\s*[, ]\s*', value)
                 assert len(value) == 2, f'{name} must have 2 values, found {len(value)}'
             elif name in {'filename', 'background'}:
+                value = value.replace('\\', '/')
                 filenames.append(value)
             elif name == 'filenames':
                 value = list(map(str.strip, value.strip().split('\n')))
@@ -140,10 +143,15 @@ def parse_config_values(config: ConfigParser) -> Params:
 def read_config(fname: str) -> Params:
 
     config = ConfigParser(allow_no_value=True)
+    fname = fname.replace('\\' ,'/')
     assert path.isfile(fname), f'{fname} does not exist, must be an existing file'
 
     config['DEFAULT'] = section_default
     config.read(fname)
+
+    cwd = path.dirname(fname)
+    if cwd:
+        chdir(cwd)
 
     # read directory path from GENERAL section
     directory = config['GENERAL'].get('data directory')

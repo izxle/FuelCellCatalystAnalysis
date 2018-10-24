@@ -37,7 +37,7 @@ class Activities:
 
         text = f'''
 tafel slope:       {self.tafel_slope*-1e3:{self._activity_format}} mV / dec A/cm^2
-mass activity:     {self.mass*1e3:{self._activity_format}} mA / ug
+mass activity:     {self.mass*1e3:{self._activity_format}} mA / mg
 specific activity: {self.area*1e6:{self._activity_format}} uA / cm^2
         '''
         return text
@@ -116,21 +116,25 @@ def tafel(cycle, base=None, limit_current_range=(0.15, 0.20), catalyst_mass=None
         yB = np.empty(len(current), dtype=float)
         yB[:] = current[-1]
         # yB = array([current[-1] for i in range(len(current))])
-    if graph > 1:
-        plt.plot(potential, current, label='Diffusion limited region')
-    # remove base
+
+    # remove baseline
     current -= yB
 
     if graph > 1:
         plt.plot(potential, current, label='Corrected data')
-        plt.legend()
     # current to specific density [A / cm^2 Pt]
     current_density = current / area_real
-    # get diffusion controled current JL
+    # get diffusion controlled current JL
     # TODO: auto cut
     JLrang = (potential > iL_lower) & (potential < iL_upper)
     JL = np.average(current[JLrang])
     verb > 2 and print(f'      JL <{JLrang.sum()}> = {JL}')
+
+    if graph > 1:
+        plt.plot(potential[JLrang], current[JLrang], label='Diffusion limited region')
+        plt.plot([iL_lower, iL_upper], [JL, JL], 'k')
+        plt.legend()
+
     # correction 2 get Jk, cut @ upper limit for noise
     # TODO: auto cut
     rang = (potential > iL_upper) & (current != JL) & (current != 0)

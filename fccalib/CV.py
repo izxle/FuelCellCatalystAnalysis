@@ -80,7 +80,11 @@ def run(data, sweep_rate=50.0, c_range=(0.4, 0.6), first=None,
         copy2excel(cycle, first)
     if "H" in exe:
         xH_pos, yH_pos, y_base = H(cycle, c_range)
-        ECSA = np.trapz(yH_pos, xH_pos) / (195.e-6 * sweep_rate * 1.e-3)  # cm2
+        if data.sweep_rate:
+            sr = data.sweep_rate
+        else:
+            sr = sweep_rate
+        ECSA = np.trapz(yH_pos, xH_pos) / (195.e-6 * sr * 1.e-3)  # cm2
     if graph:
         plot(cycle, (xH_pos, yH_pos), y_base, first, graph, exe)
     return ECSA

@@ -165,18 +165,23 @@ def run(data, sweep_rate=20.,
     cycle_CO = data.get_scan(1)
     cycle_baseline = data.get_scan(2)
 
+    if data.sweep_rate:
+        sr = data.sweep_rate
+    else:
+        sr = sweep_rate
+
     # RUN stuff
     if "CO" in exe:
         params["CO"] = CO(cycle_CO, cycle_baseline, c_range, co_range, add_baseline=baseline, copy=copy)
         x, y = params["CO"][0]
         Q_CO = np.trapz(y, x)  # V C / s
-        factor_CO = 420e-6 * sweep_rate * 1.e-3  # C V / s cm2
+        factor_CO = 420e-6 * sr  # C V / s cm2
         area_CO = Q_CO / factor_CO  # cm2
     if "H" in exe:
         params["H"] = H(cycle_CO, cycle_baseline, co_range[0], copy)
         x, y = params["H"]
         Q_H = np.trapz(y, x)  # V C / s
-        factor_H = 210e-6 * sweep_rate * 1.e-3  # C V / s cm2
+        factor_H = 210e-6 * sr * 1.e-3  # C V / s cm2
         area_H = Q_H / factor_H  # cm2
     if graph:
         plot(cycle_CO, cycle_baseline, paramsCO=params.get("CO"),

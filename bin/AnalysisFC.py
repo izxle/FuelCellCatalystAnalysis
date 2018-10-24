@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 
 import matplotlib.pyplot as plt
 
-from fccalib.config import read_config
+from fccalib.config import read_config, DictWithAttrs
 from fccalib.electrode import Electrode, Ink, Catalyst, Solvent
 from fccalib.experiment import Experiment
 from fccalib.reader import read_directory
@@ -25,7 +25,7 @@ def get_args(argv=''):
     return args
 
 
-def get_electrode(config):
+def get_electrode(config: DictWithAttrs):
     catalyst = Catalyst(name=config.catalyst.name,
                         mass=config.ink.catalyst_mass,
                         active_center_name=config.catalyst.active_metal,
@@ -44,8 +44,8 @@ def get_electrode(config):
     return electrode
 
 
-def get_data(config):
-    data = read_directory(directory=config.general.path,
+def get_data(config: DictWithAttrs):
+    data = read_directory(directory=config.general.data_directory,
                           extension=config.general.ext,
                           delimiter=config.general.delimiter,
                           filenames=config.general.filenames)
