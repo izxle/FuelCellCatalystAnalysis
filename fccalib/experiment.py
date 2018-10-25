@@ -1,8 +1,6 @@
-import CO
-import CV
-import ORR
-from electrode import Electrode
-from reader import Data
+from fccalib import ORR, CV, CO
+from fccalib.electrode import Electrode
+from fccalib.reader import Data
 
 
 class Experiment:
@@ -24,7 +22,8 @@ class Experiment:
             cv_params.data = cv_data
             area_H_CV = CV.run(**cv_params)
             self.electrode.area.CV = area_H_CV
-            self.electrode.catalyst.set_ecsa(area_H_CV)
+            if area_H_CV is not None:
+                self.electrode.catalyst.set_ecsa(area_H_CV)
 
         # CO
         co_params = self.analysis_params.co

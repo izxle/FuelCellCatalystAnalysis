@@ -1,9 +1,12 @@
+from collections import OrderedDict
+
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from pylab import polyfit, poly1d
-from config import DictWithAttrs
 
-from arraytoexcel import toClipboardForExcel
+from fccalib.arraytoexcel import toClipboardForExcel
+from fccalib.writer import save_to_excel
 
 
 class OrrResult:
@@ -38,7 +41,7 @@ class Activities:
 
         text = f'''
 tafel slope:       {self.tafel_slope*-1e3:{self._activity_format}} mV / dec A/cm^2
-mass activity:     {self.mass*1e3:{self._activity_format}} mA / ug
+mass activity:     {self.mass*1e3:{self._activity_format}} mA / mg
 specific activity: {self.area*1e6:{self._activity_format}} uA / cm^2
         '''
         return text
@@ -47,45 +50,45 @@ specific activity: {self.area*1e6:{self._activity_format}} uA / cm^2
         return f'{str(self):{format_spec}}'
 
 
-def unzipos(cycle, verb=False):
-    # x, y = hsplit(cycle, 2)
-    x, y = cycle
-
-    if verb > 2: print('     init unzip', len(x))
-    rang = np.diff(x) > 0
-    if verb > 2: print('     positives:', rang.sum())
-    x = x[1:][rang]
-    y = y[1:][rang]
-
-    if len(x) == 0: raise Exception('Error in splitting. ORR.')
-    if verb > 2: print('     diff', len(x))
-
-    rang = np.zeros(len(x), dtype=bool)
-    prev_E = -float('inf')
-
-    for ix, E in enumerate(x):
-        if E < prev_E:
-            break
-        rang[ix] = True
-        prev_E = E
-
-    if rang.sum() == 1:
-        rang[0] = False
-        prev_E = x[ix]
-
-        for ix, E in enumerate(x[ix + 1:], ix + 1):
-            if E < prev_E:
-                break
-            rang[ix] = True
-            prev_E = E
-
-    x = x[rang]
-    y = y[rang]
-
-    if verb > 2: print('     fin unzip', len(x))
-
-    return x, y
-
+# def unzipos(cycle, verb=False):
+#     # x, y = hsplit(cycle, 2)
+#     x, y = cycle
+#
+#     if verb > 2: print('     init unzip', len(x))
+#     rang = np.diff(x) > 0
+#     if verb > 2: print('     positives:', rang.sum())
+#     x = x[1:][rang]
+#     y = y[1:][rang]
+#
+#     if len(x) == 0: raise Exception('Error in splitting. ORR.')
+#     if verb > 2: print('     diff', len(x))
+#
+#     rang = np.zeros(len(x), dtype=bool)
+#     prev_E = -float('inf')
+#
+#     for ix, E in enumerate(x):
+#         if E < prev_E:
+#             break
+#         rang[ix] = True
+#         prev_E = E
+#
+#     if rang.sum() == 1:
+#         rang[0] = False
+#         prev_E = x[ix]
+#
+#         for ix, E in enumerate(x[ix + 1:], ix + 1):
+#             if E < prev_E:
+#                 break
+#             rang[ix] = True
+#             prev_E = E
+#
+#     x = x[rang]
+#     y = y[rang]
+#
+#     if verb > 2: print('     fin unzip', len(x))
+#
+#     return x, y
+#
 
 def tafel(cycle, base=None, limit_current_range=(0.15, 0.20), catalyst_mass=None, area_real=None,
           activity_potential=0.9, shift=1.5, rpm=1600, report='area mass', sweep_rate=20,
@@ -117,21 +120,25 @@ def tafel(cycle, base=None, limit_current_range=(0.15, 0.20), catalyst_mass=None
         yB = np.empty(len(current), dtype=float)
         yB[:] = current[-1]
         # yB = array([current[-1] for i in range(len(current))])
-    if graph > 1:
-        plt.plot(potential, current, label='Diffusion limited region')
-    # remove base
+
+    # remove baseline
     current -= yB
 
     if graph > 1:
         plt.plot(potential, current, label='Corrected data')
-        plt.legend()
     # current to specific density [A / cm^2 Pt]
     current_density = current / area_real
-    # get diffusion controled current JL
+    # get diffusion controlled current JL
     # TODO: auto cut
     JLrang = (potential > iL_lower) & (potential < iL_upper)
     JL = np.average(current[JLrang])
     verb > 2 and print(f'      JL <{JLrang.sum()}> = {JL}')
+
+    if graph > 1:
+        plt.plot(potential[JLrang], current[JLrang], label='Diffusion limited region')
+        plt.plot([iL_lower, iL_upper], [JL, JL], 'k')
+        plt.legend()
+
     # correction 2 get Jk, cut @ upper limit for noise
     # TODO: auto cut
     rang = (potential > iL_upper) & (current != JL) & (current != 0)
@@ -189,24 +196,30 @@ def tafel(cycle, base=None, limit_current_range=(0.15, 0.20), catalyst_mass=None
 
     # copy to excel
     if copy:
-        toClipboardForExcel(np.column_stack((potential, logJk)))
-        input("copy logJk...")
-        print('... done')
-        toClipboardForExcel(np.column_stack((potential[lowRang], lowJk)))
-        input("copy lowJk...")
-        print('... done')
-        toClipboardForExcel(np.column_stack((potential[highRang], highJk)))
-        input("copy highJk...")
-        print('... done')
+        d = OrderedDict([('potential', potential),
+                         ('log Jk', logJk)])
+        df = pd.DataFrame(data=d)
+        save_to_excel(df, 'results.xlsx', 'Tafel', index=False)
+
+        d = OrderedDict([('potential', potential[lowRang]),
+                         ('low overpotential\nJk', lowJk)])
+        df = pd.DataFrame(data=d)
+        save_to_excel(df, 'results.xlsx', 'Tafel', 3, index=False)
+
+        d = OrderedDict([('potential', potential[highRang]),
+                         ('high overpotential\nJk', highJk)])
+        df = pd.DataFrame(data=d)
+        save_to_excel(df, 'results.xlsx', 'Tafel', 5, index=False)
+
     # plot
     if graph:  # graph:
         plt.figure('ORR - Tafel')
         plt.plot(potential, logJk, ":")
         plt.plot(potential[lowRang], lowFit(potential[lowRang]))
-        plt.plot(potential[highRang], highFit(potential[highRang]))
+        # plt.plot(potential[highRang], highFit(potential[highRang]))
         # plt.plot(highJk, potential[highRang])
-        plt.xlabel('Potencial (V)')
-        plt.ylabel('log Jk (A/cm$^2_{Pt}$)')
+        plt.xlabel('Potential [V$_{NHE}$]')
+        plt.ylabel('log J$_k$ [A/cm$^2_{Pt,Pd}$]')
         plt.title("Tafel")
         # plt.show()
     return act_low, act_high
@@ -244,16 +257,24 @@ def KL(cycles, area, base=None, limit_current_range=(0.2, 0.4),
     m, b = polyfit(x, y, 1)  # mA / (cm^2 * rpm^.5)
     # copy to excel
     if copy:
-        toClipboardForExcel(np.column_stack((x, y)))
-        input("copy KL...")
-        print((m, b, '... done'))
+
+        d = OrderedDict([('1/rpm^0.5', x),
+                         ('1/J_L', y)])
+        df = pd.DataFrame(data=d)
+        save_to_excel(df, 'results.xlsx', 'KL', index=False)
+
+        d = {'slope': [m],
+             'intercept': [b]}
+        df = pd.DataFrame(data=d)
+        save_to_excel(df, 'results.xlsx', 'KL', 4, index=False)
+
     if graph:
         # TODO: add equation to graph
         plt.figure('ORR - Koutecký-Levich')
         plt.plot(x, [m * i + b for i in x])
         plt.scatter(x, y)
-        plt.xlabel('RPM$^{-0.5}$ (s$^{-0.5}$)')
-        plt.ylabel('JL (cm$^2$ / A)')
+        plt.xlabel('RPM$^{-0.5}$ [s$^{-0.5}$]')
+        plt.ylabel('1/J$_L$ [cm$^2$/A]')
         plt.title("Koutecký-Levich")
         # plt.show()
     return 1 / m
@@ -265,7 +286,7 @@ def plot(cycles, graph=True, base=None, copy=False, verb=False):
     else:
         xB, yB = None, None
 
-    for rpm, cycle in list(cycles.items()):
+    for i, (rpm, cycle) in enumerate(list(cycles.items())):
         verb and print('    plotting ORR', rpm)
         # x, y = unzipos(cycle, verb)
         x, y = cycle
@@ -279,20 +300,23 @@ def plot(cycles, graph=True, base=None, copy=False, verb=False):
                 plt.plot(x, y, label=str(rpm))
         # copy to excel
         if copy:
-            toClipboardForExcel(np.column_stack((x, y)))
-            input("copy ORR {}...".format(rpm))
-            print('  ... done')
+            d = OrderedDict([(f'{rpm}\npotential', x),
+                             ('current', y)])
+
+            df = pd.DataFrame(data=d)
+            save_to_excel(df, 'results.xlsx', 'ORR', i*2, index=False)
+
     if graph:
         plt.figure('ORR - Raw data')
         plt.title('ORR - Linear Voltammogram - Raw positive sweeps')
         plt.legend(title='RPM', loc=0)
-        plt.xlabel('Potential (V)')
-        plt.ylabel('Current (A)')
+        plt.xlabel('Potential [V$_{NHE}$]')
+        plt.ylabel('Current [A]')
 
         plt.figure('ORR - Corrected data')
         plt.title('ORR - Voltammogram - Positive sweeps')
-        plt.xlabel('Potential (V)')
-        plt.ylabel('Current (A)')
+        plt.xlabel('Potential [V$_{NHE}$]')
+        plt.ylabel('Current [A]')
         if yB is not None:
             plt.plot(xB, yB, 'g:', label='Baseline')
         plt.legend(title='RPM', loc=0)
@@ -304,7 +328,7 @@ def run(orr_data, exe='', graph=False, rpm='1600', verb=False, **params):
     cycles = dict()
     baseline = None
     for name, data in orr_data.items():
-        linear_sweep = unzipos(data.get_scan(-1))
+        linear_sweep = data.get_linear_sweep(-1)
         if name == 'background':
             baseline = linear_sweep
         else:

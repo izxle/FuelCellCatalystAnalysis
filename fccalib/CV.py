@@ -1,8 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+from collections import OrderedDict
 
-from arraytoexcel import toClipboardForExcel
-
+from fccalib.arraytoexcel import toClipboardForExcel
+from fccalib.writer import save_to_excel
 
 def H(cycle, c_range=(0.4, 0.6)):
     c_lower, c_upper = c_range
@@ -33,11 +35,12 @@ def plot(cycle_CV, cycle_H, y_base, first=None, graph=True, exe: str = ''):
 
     plt.figure('CV')
     plt.title('CV')
-    plt.xlabel('Potential (V)')
-    plt.ylabel('Current (A)')
+    plt.xlabel('Potential [V$_{NHE}$]')
+    plt.ylabel('Current [A]')
 
     plt.plot(potential, current, label="Last")
 
+    # TODO: change units for clarity
     if (first is not None) and (first is not False):
         potential_first, current_first = first
         plt.plot(potential_first, current_first, label='First')
@@ -49,8 +52,8 @@ def plot(cycle_CV, cycle_H, y_base, first=None, graph=True, exe: str = ''):
             plt.figure('CV - H_ads peak')
             plt.plot(xH, yH)
             plt.title("CV-$H_{ads}$")
-            plt.xlabel('Potential (V)')
-            plt.ylabel('Current (A)')
+            plt.xlabel('Potential [V$_{NHE}$]')
+            plt.ylabel('Current [A]')
     # plt.show()
 
 
@@ -76,10 +79,17 @@ def run(data, sweep_rate=50.0, c_range=(0.4, 0.6), first=None,
         first = data.get_scan(1)
     # RUN stuff
     if copy:
-        copy2excel(cycle, first)
+        d = OrderedDict([('potential', cycle[0]),
+                         ('current', cycle[1])])
+        df = pd.DataFrame(data=d)
+        save_to_excel(df, 'results.xlsx', 'CV', index=False)
     if "H" in exe:
         xH_pos, yH_pos, y_base = H(cycle, c_range)
-        ECSA = np.trapz(yH_pos, xH_pos) / (195.e-6 * sweep_rate * 1.e-3)  # cm2
+        if data.sweep_rate:
+            sr = data.sweep_rate
+        else:
+            sr = sweep_rate
+        ECSA = np.trapz(yH_pos, xH_pos) / (195.e-6 * sr * 1.e-3)  # cm2
     if graph:
         plot(cycle, (xH_pos, yH_pos), y_base, first, graph, exe)
     return ECSA

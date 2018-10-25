@@ -1,7 +1,10 @@
+from collections import OrderedDict
+
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
-from arraytoexcel import toClipboardForExcel
+from .writer import save_to_excel
 
 
 # TODO: decorate plt.plot to allow xy arrays
@@ -68,17 +71,17 @@ def CO(cycle_CO, cycle_baseline, c_range=(0.4, 0.6), co_range=(0.6, 0.9),
 
     # copy to excel
     if copy:
-        toClipboardForExcel(cycle_CO)
-        input("copy CO 1...")
-        print('... done')
-        toClipboardForExcel(cycle_baseline)
-        input("copy CO 2...")
-        print('... done')
-        if copy > 1:
-            toClipboardForExcel(np.column_stack((potential, current)))
-            input("copy CO (1 - 2)...")
-            print('... done')
-            # return xyCO, base_rawCO, baseCO
+        d = OrderedDict([('potential', cycle_CO[0]),
+                         ('cycle CO\ncurrent', cycle_CO[1]),
+                         ('baseline\ncurrent', cycle_baseline[1])])
+        df = pd.DataFrame(data=d)
+        save_to_excel(df, 'results.xlsx', 'CO', index=False)
+
+        d = OrderedDict([('potential', potential),
+                         ('CO peak\ncurrent', current)])
+        df = pd.DataFrame(data=d)
+        save_to_excel(df, 'results.xlsx', 'CO', 5, index=False)
+
     return (xCO, yCO), (xCO, base_raw)  # , (xCO, base)
 
 
@@ -124,6 +127,9 @@ def plot(cycle_CO, cycle_baseline, paramsCO, paramsH, exe, graph):
                 # baseline
                 # TODO: add baseline
                 plt.title("CO peak")
+                plt.xlabel('Potential [V$_{NHE}$]')
+                plt.ylabel('Current [A]')
+
         if "H" in exe:
             xyH = paramsH
             if graph > 2:
@@ -132,12 +138,16 @@ def plot(cycle_CO, cycle_baseline, paramsCO, paramsH, exe, graph):
                 x, y = xyH
                 plt.plot(x, y)
                 plt.title("CO stripping - normalized $H_{ads}$ peak")
+                plt.xlabel('Potential [V$_{NHE}$]')
+                plt.ylabel('Current [A]')
 
     potential_CO, current_CO = cycle_CO
     potential_baseline, current_baseline = cycle_baseline
     plt.figure('CV - CO stripping')
     plt.plot(potential_CO, current_CO, color='b', linestyle=':', label='First')
     plt.plot(potential_baseline, current_baseline, color='g', linestyle=':', label='Second')
+    plt.xlabel('Potential [V$_{NHE}$]')
+    plt.ylabel('Current [A]')
     plt.title("CO stripping")
     plt.legend(title='Cycle', loc=0)
     if graph > 1:
@@ -158,18 +168,23 @@ def run(data, sweep_rate=20.,
     cycle_CO = data.get_scan(1)
     cycle_baseline = data.get_scan(2)
 
+    if data.sweep_rate:
+        sr = data.sweep_rate
+    else:
+        sr = sweep_rate
+
     # RUN stuff
     if "CO" in exe:
         params["CO"] = CO(cycle_CO, cycle_baseline, c_range, co_range, add_baseline=baseline, copy=copy)
         x, y = params["CO"][0]
         Q_CO = np.trapz(y, x)  # V C / s
-        factor_CO = 420e-6 * sweep_rate * 1.e-3  # C V / s cm2
+        factor_CO = 420e-6 * sr  # C V / s cm2
         area_CO = Q_CO / factor_CO  # cm2
     if "H" in exe:
         params["H"] = H(cycle_CO, cycle_baseline, co_range[0], copy)
         x, y = params["H"]
         Q_H = np.trapz(y, x)  # V C / s
-        factor_H = 210e-6 * sweep_rate * 1.e-3  # C V / s cm2
+        factor_H = 210e-6 * sr * 1.e-3  # C V / s cm2
         area_H = Q_H / factor_H  # cm2
     if graph:
         plot(cycle_CO, cycle_baseline, paramsCO=params.get("CO"),

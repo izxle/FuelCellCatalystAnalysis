@@ -3,16 +3,19 @@ from argparse import ArgumentParser
 
 import matplotlib.pyplot as plt
 
-from config import read_config
-from electrode import Electrode, Ink, Catalyst, Solvent
-from experiment import Experiment
-from reader import read_directory
+from fccalib.config import read_config, DictWithAttrs
+from fccalib.electrode import Electrode, Ink, Catalyst, Solvent
+from fccalib.experiment import Experiment
+from fccalib.reader import read_directory, read_result
+from fccalib.writer import save_object
 
 
 def get_args(argv=''):
     parser = ArgumentParser()
     # argument definition
     parser.add_argument('configfile', nargs='?', default='config.ini')
+    parser.add_argument('-r', '--read', action='store_true',
+                        help='read result.pkl and ignore config.ini')
     # read arguments
     if argv:
         if isinstance(argv, str):
@@ -25,7 +28,7 @@ def get_args(argv=''):
     return args
 
 
-def get_electrode(config):
+def get_electrode(config: DictWithAttrs):
     catalyst = Catalyst(name=config.catalyst.name,
                         mass=config.ink.catalyst_mass,
                         active_center_name=config.catalyst.active_metal,
@@ -44,30 +47,36 @@ def get_electrode(config):
     return electrode
 
 
-def get_data(config):
-    data = read_directory(directory=config.general.path,
+def get_data(config: DictWithAttrs):
+    data = read_directory(directory=config.general.data_directory,
                           extension=config.general.ext,
                           delimiter=config.general.delimiter,
                           filenames=config.general.filenames)
     return data
 
 
-def run(argv=''):
+def run(argv=None):
     args = get_args(argv)
 
-    config = read_config(args.configfile)
+    if args.read:
+        experiment = read_result()
+    else:
+        config = read_config(args.configfile)
 
-    electrode = get_electrode(config)
-    data = get_data(config)
+        electrode = get_electrode(config)
+        data = get_data(config)
 
-    experiment = Experiment(data=data,
-                            electrode=electrode,
-                            analysis_params=config.analysis)
 
+        experiment = Experiment(data=data,
+                                electrode=electrode,
+                                analysis_params=config.analysis)
+        plt.show()
+        save_object(experiment, 'result.pkl')
     return experiment
 
 
 if __name__ == '__main__':
-    res = run()
+    res = run([r'..\examples\Pt\config.ini'])
     print(res)
     plt.show()
+    print()

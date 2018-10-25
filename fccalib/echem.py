@@ -1,6 +1,6 @@
 import numpy as np
 
-from reader import Data
+from fccalib.reader import Data
 
 
 # def manage_mask_range(f):
