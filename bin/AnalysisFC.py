@@ -7,7 +7,7 @@ from fccalib.config import read_config, DictWithAttrs
 from fccalib.electrode import Electrode, Ink, Catalyst, Solvent
 from fccalib.experiment import Experiment
 from fccalib.reader import read_directory, read_result
-from fccalib.writter import save_object
+from fccalib.writer import save_object
 
 
 def get_args(argv=''):

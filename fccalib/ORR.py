@@ -1,8 +1,12 @@
+from collections import OrderedDict
+
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from pylab import polyfit, poly1d
 
 from fccalib.arraytoexcel import toClipboardForExcel
+from fccalib.writer import save_to_excel
 
 
 class OrrResult:
@@ -192,15 +196,21 @@ def tafel(cycle, base=None, limit_current_range=(0.15, 0.20), catalyst_mass=None
 
     # copy to excel
     if copy:
-        toClipboardForExcel(np.column_stack((potential, logJk)))
-        input("copy logJk...")
-        print('... done')
-        toClipboardForExcel(np.column_stack((potential[lowRang], lowJk)))
-        input("copy lowJk...")
-        print('... done')
-        toClipboardForExcel(np.column_stack((potential[highRang], highJk)))
-        input("copy highJk...")
-        print('... done')
+        d = OrderedDict([('potential', potential),
+                         ('log Jk', logJk)])
+        df = pd.DataFrame(data=d)
+        save_to_excel(df, 'results.xlsx', 'Tafel', index=False)
+
+        d = OrderedDict([('potential', potential[lowRang]),
+                         ('low overpotential\nJk', lowJk)])
+        df = pd.DataFrame(data=d)
+        save_to_excel(df, 'results.xlsx', 'Tafel', 3, index=False)
+
+        d = OrderedDict([('potential', potential[highRang]),
+                         ('high overpotential\nJk', highJk)])
+        df = pd.DataFrame(data=d)
+        save_to_excel(df, 'results.xlsx', 'Tafel', 5, index=False)
+
     # plot
     if graph:  # graph:
         plt.figure('ORR - Tafel')
@@ -247,9 +257,17 @@ def KL(cycles, area, base=None, limit_current_range=(0.2, 0.4),
     m, b = polyfit(x, y, 1)  # mA / (cm^2 * rpm^.5)
     # copy to excel
     if copy:
-        toClipboardForExcel(np.column_stack((x, y)))
-        input("copy KL...")
-        print((m, b, '... done'))
+
+        d = OrderedDict([('1/rpm^0.5', x),
+                         ('1/J_L', y)])
+        df = pd.DataFrame(data=d)
+        save_to_excel(df, 'results.xlsx', 'KL', index=False)
+
+        d = {'slope': [m],
+             'intercept': [b]}
+        df = pd.DataFrame(data=d)
+        save_to_excel(df, 'results.xlsx', 'KL', 4, index=False)
+
     if graph:
         # TODO: add equation to graph
         plt.figure('ORR - Koutecký-Levich')
@@ -268,7 +286,7 @@ def plot(cycles, graph=True, base=None, copy=False, verb=False):
     else:
         xB, yB = None, None
 
-    for rpm, cycle in list(cycles.items()):
+    for i, (rpm, cycle) in enumerate(list(cycles.items())):
         verb and print('    plotting ORR', rpm)
         # x, y = unzipos(cycle, verb)
         x, y = cycle
@@ -282,9 +300,12 @@ def plot(cycles, graph=True, base=None, copy=False, verb=False):
                 plt.plot(x, y, label=str(rpm))
         # copy to excel
         if copy:
-            toClipboardForExcel(np.column_stack((x, y)))
-            input("copy ORR {}...".format(rpm))
-            print('  ... done')
+            d = OrderedDict([(f'{rpm}\npotential', x),
+                             ('current', y)])
+
+            df = pd.DataFrame(data=d)
+            save_to_excel(df, 'results.xlsx', 'ORR', i*2, index=False)
+
     if graph:
         plt.figure('ORR - Raw data')
         plt.title('ORR - Linear Voltammogram - Raw positive sweeps')

@@ -1,7 +1,10 @@
+from collections import OrderedDict
+
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
-from fccalib.arraytoexcel import toClipboardForExcel
+from .writer import save_to_excel
 
 
 # TODO: decorate plt.plot to allow xy arrays
@@ -68,17 +71,17 @@ def CO(cycle_CO, cycle_baseline, c_range=(0.4, 0.6), co_range=(0.6, 0.9),
 
     # copy to excel
     if copy:
-        toClipboardForExcel(cycle_CO)
-        input("copy CO 1...")
-        print('... done')
-        toClipboardForExcel(cycle_baseline)
-        input("copy CO 2...")
-        print('... done')
-        if copy > 1:
-            toClipboardForExcel(np.column_stack((potential, current)))
-            input("copy CO (1 - 2)...")
-            print('... done')
-            # return xyCO, base_rawCO, baseCO
+        d = OrderedDict([('potential', cycle_CO[0]),
+                         ('cycle CO\ncurrent', cycle_CO[1]),
+                         ('baseline\ncurrent', cycle_baseline[1])])
+        df = pd.DataFrame(data=d)
+        save_to_excel(df, 'results.xlsx', 'CO', index=False)
+
+        d = OrderedDict([('potential', potential),
+                         ('CO peak\ncurrent', current)])
+        df = pd.DataFrame(data=d)
+        save_to_excel(df, 'results.xlsx', 'CO', 5, index=False)
+
     return (xCO, yCO), (xCO, base_raw)  # , (xCO, base)
 
 

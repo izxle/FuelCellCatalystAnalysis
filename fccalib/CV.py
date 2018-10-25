@@ -1,8 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+from collections import OrderedDict
 
 from fccalib.arraytoexcel import toClipboardForExcel
-
+from fccalib.writer import save_to_excel
 
 def H(cycle, c_range=(0.4, 0.6)):
     c_lower, c_upper = c_range
@@ -77,7 +79,10 @@ def run(data, sweep_rate=50.0, c_range=(0.4, 0.6), first=None,
         first = data.get_scan(1)
     # RUN stuff
     if copy:
-        copy2excel(cycle, first)
+        d = OrderedDict([('potential', cycle[0]),
+                         ('current', cycle[1])])
+        df = pd.DataFrame(data=d)
+        save_to_excel(df, 'results.xlsx', 'CV', index=False)
     if "H" in exe:
         xH_pos, yH_pos, y_base = H(cycle, c_range)
         if data.sweep_rate:
