@@ -1,10 +1,11 @@
 from glob import glob
 from os import path
-from typing import Iterable
+from typing import Iterable, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 
+import re
 import pickle
 from pandas import read_excel
 
@@ -19,23 +20,62 @@ def extract_data(raw_data, headers=None):
         time_index = 2
     else:
         # get index of first potential/current in headers
+        if any('potential' in h for h in headers):
+            try:
+                potential_index = next(i for i, h in enumerate(headers)
+                                       if 'potential' in h and 'applied' not in h)
+            except StopIteration:
+                potential_index = next(i for i, h in enumerate(headers)
+                                       if 'potential' in h)
+
+            current_index = next(i for i, h in enumerate(headers)
+                                 if 'current' in h)
+            time_index = next(i for i, h in enumerate(headers)
+                              if 'time' in h)
+
+            # get data
+            res_data = dict()
+            res_data['potential'] = np.array(raw_data[:, potential_index], dtype=float)
+            res_data['current'] = np.array(raw_data[:, current_index], dtype=float)
+            res_data['time'] = np.array(raw_data[:, time_index], dtype=float)
+
+        else:
+            # handle special cases
+
+            # .fcd files
+            potential_index = next(i for i, h in enumerate(headers)
+                                       if 'E_Stack (V)' in h)
+            current_index = next(i for i, h in enumerate(headers)
+                                 if 'I (A)' in h)
+            current_density_index = next(i for i, h in enumerate(headers)
+                                 if 'I (mA/cm²)' in h)
+            power_index = next(i for i, h in enumerate(headers)
+                              if 'Power (Watts)' in h)
+            power_density_index = next(i for i, h in enumerate(headers)
+                               if 'Power (mW/cm²)' in h)
+            time_index = next(i for i, h in enumerate(headers)
+                              if 'Time (Sec)' in h)
+            # get data
+            res_data = dict()
+            res_data['potential'] = np.array(raw_data[:, potential_index], dtype=float)
+            res_data['fc_potential'] = np.array(raw_data[:, potential_index], dtype=float)
+
+            res_data['current'] = np.array(raw_data[:, current_index], dtype=float)
+            res_data['fc_current'] = np.array(raw_data[:, current_index], dtype=float)
+
+            res_data['current_density'] = np.array(raw_data[:, current_density_index], dtype=float)
+            res_data['fc_current_density'] = np.array(raw_data[:, current_density_index], dtype=float)
+
+            res_data['power'] = np.array(raw_data[:, power_index], dtype=float)
+            res_data['power_density'] = np.array(raw_data[:, power_density_index], dtype=float)
+            res_data['time'] = np.array(raw_data[:, time_index], dtype=float)
+
+    # try to get all of the fields
+    for i, h in enumerate(headers):
         try:
-            potential_index = next(i for i, h in enumerate(headers)
-                                   if 'potential' in h and 'applied' not in h)
-        except StopIteration:
-            potential_index = next(i for i, h in enumerate(headers)
-                                   if 'potential' in h)
-
-        current_index = next(i for i, h in enumerate(headers)
-                             if 'current' in h)
-        time_index = next(i for i, h in enumerate(headers)
-                          if 'time' in h)
-
-    # get data
-    res_data = dict()
-    res_data['potential'] = np.array(raw_data[:, potential_index], dtype=float)
-    res_data['current'] = np.array(raw_data[:, current_index], dtype=float)
-    res_data['time'] = np.array(raw_data[:, time_index], dtype=float)
+            res_data[h] = np.array(raw_data[:, i], dtype=float)
+        except ValueError:
+            pass
 
     # check if scan info in headers
     if any('scan' in h for h in headers):
@@ -99,20 +139,29 @@ class Data(object):
     def set_scan(self, array):
         self.scan = array
 
-    def get_scan(self, i: int):
-        if i == -1:
-            i = max(self.scan)
-        elif i == 0:
-            i = 1
-        mask = self.scan == i
-        potential = self.potential[mask]
-        current = self.current[mask]
-        cycle = np.vstack((potential, current))
+    def get_scan(self, i: int,
+                 properties: Tuple[str, ...]=('potential', 'current')):
+
+        if isinstance(i, int):
+            if i == -1:
+                i = max(self.scan)
+            elif i == 0:
+                i = 1
+            mask = self.scan == i
+        else:
+            mask = Ellipsis
+
+        values = tuple(self.get_property(prop)[mask]
+                       for prop in properties)
+
+        cycle = np.vstack(values)
         return cycle
 
-    def get_linear_sweep(self, i: int, direction:int = 1):
-        cycle = self.get_scan(i)
-        x, y = cycle
+    def get_linear_sweep(self, i: int, direction:int = 1,
+                         properties: Tuple[str, ...] = ('potential', 'current'),
+                         sort: bool=True):
+        cycle = self.get_scan(i, properties)
+        x = cycle[0]
 
         if direction == 1:
             diff = np.diff(x) > 0
@@ -123,16 +172,20 @@ class Data(object):
 
         first_value = diff[0]
         mask_diff = [first_value] + list(diff)
-        x = x[mask_diff]
-        y = y[mask_diff]
 
-        if len(x) == 0: raise ValueError('Error in splitting cycle.')
+        res = tuple(self.get_property(prop)[mask_diff]
+                       for prop in properties)
 
-        sorted_indices = x.argsort()
-        x = x[sorted_indices]
-        y = y[sorted_indices]
+        if len(res[0]) == 0:
+            raise ValueError('Error in splitting cycle, got empty array.')
 
-        return x, y
+        if sort:
+            # sort according to the first property
+            sorted_indices = res[0].argsort()
+            res = tuple(arr[sorted_indices]
+                        for arr in res)
+
+        return res
 
     def set_time(self, array):
         self.time = array
@@ -188,9 +241,35 @@ def read_xls(filename):
     return data
 
 
+def read_fcd(filename):
+    delimiter = '\t'
+    name = path.basename(filename)
+    info = dict()
+
+    with open(filename, 'r', encoding='latin-1') as f:
+        for i, line in enumerate(f.readlines()):
+            line = line.strip()
+            if delimiter in line:
+                prop_name, value = re.split('\s+', line, 1)
+                info[prop_name] = value
+
+            elif line == 'End Comments':
+                headers = prev_line.split(delimiter)
+                i_header = i + 1
+                break
+
+            prev_line = line
+
+    raw_data = np.genfromtxt(filename, skip_header=i_header, delimiter=delimiter)
+    data = Data(name=name, raw_data=raw_data, headers=headers)
+    return data
+
+
 def read_file(filename, delimiter: str=';'):
     name, ext = path.splitext(filename)
-    if ext == '.xlsx':
+    if ext == '.fcd':
+        data = read_fcd(filename)
+    elif ext == '.xlsx':
         data = read_xls(filename)
     else:
         data = read_txt(filename, delimiter)
